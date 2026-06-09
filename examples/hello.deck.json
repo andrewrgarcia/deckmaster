@@ -77,6 +77,21 @@
           "color": {
             "value": "#111111"
           }
+        },
+        {
+          "type": "Text",
+          "id": "4dd3aec3-ef06-4c3c-9111-5be267be9e6e",
+          "bounds": {
+            "x": 100.0,
+            "y": 200.0,
+            "width": 600.0,
+            "height": 100.0
+          },
+          "text": "Revenue increased 24%",
+          "font_size": 24.0,
+          "color": {
+            "value": "#111111"
+          }
         }
       ]
     }

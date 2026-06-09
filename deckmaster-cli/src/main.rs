@@ -1,12 +1,15 @@
 use clap::{Parser, Subcommand};
+use deckmaster_core::{
+    io::{from_json, to_json},
+    Presentation, Slide,
+};
 use std::fs;
 use std::path::PathBuf;
-use deckmaster_core::io::from_json;
 
 #[derive(Parser)]
 #[command(name = "deckmaster")]
 #[command(version = "0.1.0")]
-#[command(about = "deckmaster presentation engine CLI")]
+#[command(about = "Deckmaster presentation engine CLI")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -17,6 +20,11 @@ enum Commands {
     Inspect {
         file: PathBuf,
     },
+
+    New {
+        file: PathBuf,
+        title: String,
+    },
 }
 
 fn main() {
@@ -24,12 +32,40 @@ fn main() {
 
     let result = match cli.command {
         Commands::Inspect { file } => inspect(file),
+        Commands::New { file, title } => create_new(file, title),
     };
 
     if let Err(err) = result {
         eprintln!("error: {err}");
         std::process::exit(1);
     }
+}
+
+fn create_new(
+    file: PathBuf,
+    title: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut presentation = Presentation::new(title);
+
+    let mut slide = Slide::new(Some("Slide 1".to_string()));
+
+    slide.add_text(
+        "Welcome to Deckmaster",
+        100.0,
+        100.0,
+        500.0,
+        100.0,
+    );
+
+    presentation.slides.push(slide);
+
+    let json = to_json(&presentation)?;
+
+    fs::write(file, json)?;
+
+    println!("Presentation created.");
+
+    Ok(())
 }
 
 fn inspect(file: PathBuf) -> Result<(), Box<dyn std::error::Error>> {

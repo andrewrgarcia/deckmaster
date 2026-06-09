@@ -1,0 +1,44 @@
+{
+  "id": "c3739bdb-b3d5-4172-ad61-6cceb88884d8",
+  "metadata": {
+    "title": "My First Deck",
+    "author": null
+  },
+  "theme": {
+    "name": "Default",
+    "background": {
+      "value": "#FFFFFF"
+    },
+    "foreground": {
+      "value": "#111111"
+    }
+  },
+  "assets": [],
+  "slides": [
+    {
+      "id": "1febfc31-0272-41a7-ac69-c5dd08a040dc",
+      "name": "Slide 1",
+      "size": {
+        "width": 13.333,
+        "height": 7.5
+      },
+      "elements": [
+        {
+          "type": "Text",
+          "id": "cd6e1744-b59b-492d-9ff8-627110ee6dfe",
+          "bounds": {
+            "x": 100.0,
+            "y": 100.0,
+            "width": 500.0,
+            "height": 100.0
+          },
+          "text": "Welcome to Deckmaster",
+          "font_size": 24.0,
+          "color": {
+            "value": "#111111"
+          }
+        }
+      ]
+    }
+  ]
+}

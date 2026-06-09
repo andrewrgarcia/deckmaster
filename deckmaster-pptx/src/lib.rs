@@ -1,6 +1,12 @@
-use std::path::Path;
-use deckmaster_core::Presentation;
+pub mod export;
+pub mod import;
+pub mod package;
+
 use thiserror::Error;
+
+pub use export::*;
+pub use import::*;
+pub use package::*;
 
 #[derive(Debug, Error)]
 pub enum PptxError {
@@ -9,14 +15,13 @@ pub enum PptxError {
 
     #[error("PPTX export is not implemented yet")]
     ExportNotImplemented,
+
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("ZIP error: {0}")]
+    Zip(#[from] zip::result::ZipError),
 }
 
-pub type Result<T> = std::result::Result<T, PptxError>;
-
-pub fn import_pptx(_path: impl AsRef<Path>) -> Result<Presentation> {
-    Err(PptxError::ImportNotImplemented)
-}
-
-pub fn export_pptx(_presentation: &Presentation, _path: impl AsRef<Path>) -> Result<()> {
-    Err(PptxError::ExportNotImplemented)
-}
+pub type Result<T> =
+    std::result::Result<T, PptxError>;

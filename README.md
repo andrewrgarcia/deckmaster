@@ -1,5 +1,10 @@
 # DeckMaster
 
+<p align="center">
+<img width="950" alt="Screenshot from 2026-06-09 00-23-38" src="https://github.com/user-attachments/assets/d1a991a9-fed0-493f-a976-43bce0936f50" />
+<img  width="950" alt="Screenshot from 2026-06-09 00-56-30" src="https://github.com/user-attachments/assets/f1b9c572-df53-4872-a3b7-cfd24e8f4fb0" />
+</p>
+
 **DeckMaster** is an open-source bidirectional presentation engine written in Rust.
 
 The goal is not to build another PowerPoint clone.

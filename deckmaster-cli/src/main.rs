@@ -25,6 +25,11 @@ enum Commands {
         file: PathBuf,
         title: String,
     },
+
+    AddSlide {
+        file: PathBuf,
+        title: String,
+    },
 }
 
 fn main() {
@@ -33,6 +38,7 @@ fn main() {
     let result = match cli.command {
         Commands::Inspect { file } => inspect(file),
         Commands::New { file, title } => create_new(file, title),
+        Commands::AddSlide { file, title } => add_slide(file, title),
     };
 
     if let Err(err) = result {
@@ -59,17 +65,45 @@ fn create_new(
 
     presentation.slides.push(slide);
 
-    let json = to_json(&presentation)?;
-
-    fs::write(file, json)?;
+    fs::write(file, to_json(&presentation)?)?;
 
     println!("Presentation created.");
 
     Ok(())
 }
 
+fn add_slide(
+    file: PathBuf,
+    title: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let source = fs::read_to_string(&file)?;
+
+    let mut presentation = from_json(&source)?;
+
+    let slide_number = presentation.slides.len() + 1;
+
+    let mut slide = Slide::new(Some(title));
+
+    slide.add_text(
+        format!("Slide {}", slide_number),
+        100.0,
+        100.0,
+        500.0,
+        100.0,
+    );
+
+    presentation.slides.push(slide);
+
+    fs::write(&file, to_json(&presentation)?)?;
+
+    println!("Slide added.");
+
+    Ok(())
+}
+
 fn inspect(file: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let source = fs::read_to_string(file)?;
+
     let presentation = from_json(&source)?;
 
     println!("Title: {}", presentation.metadata.title);

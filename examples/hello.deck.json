@@ -39,6 +39,31 @@
           }
         }
       ]
+    },
+    {
+      "id": "df827dc8-a9dd-4ef5-9d56-b88a3a8a3d80",
+      "name": "Results",
+      "size": {
+        "width": 13.333,
+        "height": 7.5
+      },
+      "elements": [
+        {
+          "type": "Text",
+          "id": "b0b15b3a-0098-440b-95c7-72903b855eed",
+          "bounds": {
+            "x": 100.0,
+            "y": 100.0,
+            "width": 500.0,
+            "height": 100.0
+          },
+          "text": "Slide 2",
+          "font_size": 24.0,
+          "color": {
+            "value": "#111111"
+          }
+        }
+      ]
     }
   ]
 }

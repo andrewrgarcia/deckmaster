@@ -1,6 +1,6 @@
 use crate::{
     io::{from_json, to_json, Result},
-    Presentation,
+    Presentation, Slide,
 };
 
 use std::fs;
@@ -16,7 +16,6 @@ impl Document {
         let path = path.as_ref().to_path_buf();
 
         let source = fs::read_to_string(&path)?;
-
         let presentation = from_json(&source)?;
 
         Ok(Self {
@@ -55,5 +54,67 @@ impl Document {
 
     pub fn presentation_mut(&mut self) -> &mut Presentation {
         &mut self.presentation
+    }
+
+    pub fn find_slide(
+        &self,
+        slide_id: uuid::Uuid,
+    ) -> Option<&crate::Slide> {
+        self.presentation
+            .slides
+            .iter()
+            .find(|slide| slide.id == slide_id)
+    }
+
+    pub fn find_slide_mut(
+        &mut self,
+        slide_id: uuid::Uuid,
+    ) -> Option<&mut crate::Slide> {
+        self.presentation
+            .slides
+            .iter_mut()
+            .find(|slide| slide.id == slide_id)
+    }
+
+    pub fn add_slide(&mut self, title: impl Into<String>) {
+        let slide_number = self.presentation.slides.len() + 1;
+
+        let mut slide = Slide::new(Some(title.into()));
+
+        slide.add_text(
+            format!("Slide {}", slide_number),
+            100.0,
+            100.0,
+            500.0,
+            100.0,
+        );
+
+        self.presentation.slides.push(slide);
+    }
+
+    pub fn add_text(
+        &mut self,
+        slide_index: usize,
+        text: impl Into<String>,
+    ) -> Result<()> {
+        let slide = self
+            .presentation
+            .slides
+            .get_mut(slide_index)
+            .ok_or_else(|| {
+                crate::io::DeckMasterError::Unsupported(
+                    "slide does not exist".to_string(),
+                )
+            })?;
+
+        slide.add_text(
+            text,
+            100.0,
+            200.0,
+            600.0,
+            100.0,
+        );
+
+        Ok(())
     }
 }

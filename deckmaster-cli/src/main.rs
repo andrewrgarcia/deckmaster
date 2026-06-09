@@ -160,23 +160,27 @@ fn inspect(file: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         for element in &slide.elements {
             match element {
                 deckmaster_core::Element::Text(text) => {
-                    println!("  - Text: {}", text.text);
+                    println!(
+                        "  - Text [{}]: {}",
+                        text.id,
+                        text.text
+                    );
                 }
 
-                deckmaster_core::Element::Image(_) => {
-                    println!("  - Image");
+                deckmaster_core::Element::Image(image) => {
+                    println!("  - Image [{}]", image.id);
                 }
 
-                deckmaster_core::Element::Shape(_) => {
-                    println!("  - Shape");
+                deckmaster_core::Element::Shape(shape) => {
+                    println!("  - Shape [{}]", shape.id);
                 }
 
-                deckmaster_core::Element::Table(_) => {
-                    println!("  - Table");
+                deckmaster_core::Element::Table(table) => {
+                    println!("  - Table [{}]", table.id);
                 }
 
-                deckmaster_core::Element::Chart(_) => {
-                    println!("  - Chart");
+                deckmaster_core::Element::Chart(chart) => {
+                    println!("  - Chart [{}]", chart.id);
                 }
             }
         }

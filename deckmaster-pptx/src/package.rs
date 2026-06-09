@@ -21,6 +21,21 @@ impl Package {
         Ok(Self { archive })
     }
 
+    pub fn read_bytes(
+        &mut self,
+        path: &str,
+    ) -> Result<Vec<u8>> {
+        let mut file =
+            self.archive.by_name(path)?;
+
+        let mut bytes = Vec::new();
+
+        file.read_to_end(&mut bytes)
+            .map_err(crate::PptxError::Io)?;
+
+        Ok(bytes)
+    }
+
     pub fn contains(
         &mut self,
         path: &str,

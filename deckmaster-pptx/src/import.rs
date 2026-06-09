@@ -1,16 +1,106 @@
-use deckmaster_core::Presentation;
-use std::path::Path;
+use deckmaster_core::{
+    Color,
+    Element,
+    Presentation,
+    Rect,
+    Slide,
+    TextElement,
+};
 
-use crate::{PptxError, Result};
+use uuid::Uuid;
+
+use crate::{
+    Package,
+    PresentationParser,
+    PresentationXml,
+    Relationships,
+    SlideParser,
+    SlideXml,
+    Result,
+};
 
 pub struct PptxImporter;
 
 impl PptxImporter {
     pub fn import(
-        path: impl AsRef<Path>,
+        path: impl AsRef<std::path::Path>,
     ) -> Result<Presentation> {
-        let _path = path.as_ref();
+        let mut package =
+            Package::open(path)?;
 
-        Err(PptxError::ImportNotImplemented)
+        let presentation_xml =
+            PresentationXml::load(
+                &mut package,
+            )?;
+
+        let slide_refs =
+            PresentationParser::slide_relationships(
+                presentation_xml.xml(),
+            )?;
+
+        let rels =
+            Relationships::load_presentation_relationships(
+                &mut package,
+            )?;
+
+        let mut presentation =
+            Presentation::new(
+                "Imported Presentation",
+            );
+
+        for slide_ref in slide_refs {
+            let rel = rels
+                .iter()
+                .find(|r| {
+                    r.id
+                        == slide_ref
+                            .relationship_id
+                })
+                .unwrap();
+
+            let slide_xml =
+                SlideXml::load(
+                    &mut package,
+                    &rel.target,
+                )?;
+
+            let texts =
+                SlideParser::extract_text(
+                    slide_xml.xml(),
+                )?;
+
+            let mut slide =
+                Slide::new(Some(
+                    "Imported Slide"
+                        .to_string(),
+                ));
+
+            for text in texts {
+                slide.elements.push(
+                    Element::Text(
+                        TextElement {
+                            id: Uuid::new_v4(),
+                            bounds: Rect {
+                                x: 0.0,
+                                y: 0.0,
+                                width: 100.0,
+                                height: 30.0,
+                            },
+                            text,
+                            font_size: 18.0,
+                            color: Color::hex(
+                                "#000000",
+                            ),
+                        },
+                    ),
+                );
+            }
+
+            presentation.slides.push(
+                slide,
+            );
+        }
+
+        Ok(presentation)
     }
 }

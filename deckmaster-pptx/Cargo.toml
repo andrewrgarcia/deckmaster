@@ -8,3 +8,4 @@ deckmaster-core = { path = "../deckmaster-core" }
 thiserror = "1"
 zip = "2"
 quick-xml = "0.38"
+uuid = { version = "1", features = ["v4"] }

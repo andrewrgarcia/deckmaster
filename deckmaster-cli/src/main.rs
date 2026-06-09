@@ -30,6 +30,12 @@ enum Commands {
         file: PathBuf,
         title: String,
     },
+
+    AddText {
+        file: PathBuf,
+        slide: usize,
+        text: String,
+    },
 }
 
 fn main() {
@@ -39,6 +45,12 @@ fn main() {
         Commands::Inspect { file } => inspect(file),
         Commands::New { file, title } => create_new(file, title),
         Commands::AddSlide { file, title } => add_slide(file, title),
+
+        Commands::AddText {
+            file,
+            slide,
+            text,
+        } => add_text(file, slide, text),
     };
 
     if let Err(err) = result {
@@ -97,6 +109,35 @@ fn add_slide(
     fs::write(&file, to_json(&presentation)?)?;
 
     println!("Slide added.");
+
+    Ok(())
+}
+
+fn add_text(
+    file: PathBuf,
+    slide: usize,
+    text: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let source = fs::read_to_string(&file)?;
+
+    let mut presentation = from_json(&source)?;
+
+    let slide_ref = presentation
+        .slides
+        .get_mut(slide - 1)
+        .ok_or("slide does not exist")?;
+
+    slide_ref.add_text(
+        text,
+        100.0,
+        200.0,
+        600.0,
+        100.0,
+    );
+
+    fs::write(&file, to_json(&presentation)?)?;
+
+    println!("Text added.");
 
     Ok(())
 }

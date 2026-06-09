@@ -1,0 +1,8 @@
+[package]
+name = "deckmaster-pptx"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+deckmaster-core = { path = "../deckmaster-core" }
+thiserror = "1"

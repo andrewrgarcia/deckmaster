@@ -164,3 +164,39 @@ pub struct ChartElement {
     pub bounds: Rect,
     pub title: String,
 }
+
+impl Element {
+    pub fn kind_name(&self) -> &'static str {
+        match self {
+            Element::Text(_) => "Text",
+            Element::Image(_) => "Image",
+            Element::Shape(_) => "Shape",
+            Element::Table(_) => "Table",
+            Element::Chart(_) => "Chart",
+        }
+    }
+}
+
+impl Slide {
+    pub fn add_text(
+        &mut self,
+        text: impl Into<String>,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        self.elements.push(Element::Text(TextElement {
+            id: Uuid::new_v4(),
+            bounds: Rect {
+                x,
+                y,
+                width,
+                height,
+            },
+            text: text.into(),
+            font_size: 24.0,
+            color: Color::hex("#111111"),
+        }));
+    }
+}

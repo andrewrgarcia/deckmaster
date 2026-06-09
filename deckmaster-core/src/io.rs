@@ -2,7 +2,7 @@ use crate::model::Presentation;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum SwipeWriteError {
+pub enum DeckMasterError {
     #[error("serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
@@ -13,7 +13,7 @@ pub enum SwipeWriteError {
     Unsupported(String),
 }
 
-pub type Result<T> = std::result::Result<T, SwipeWriteError>;
+pub type Result<T> = std::result::Result<T, DeckMasterError>;
 
 pub fn to_json(presentation: &Presentation) -> Result<String> {
     Ok(serde_json::to_string_pretty(presentation)?)

@@ -1,5 +1,5 @@
-use swipewrite_core::io::{from_json, to_json};
-use swipewrite_core::*;
+use deckmaster_core::io::{from_json, to_json};
+use deckmaster_core::*;
 
 #[test]
 fn presentation_round_trips_through_json() {

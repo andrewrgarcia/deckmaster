@@ -1,3 +1,7 @@
 [workspace]
-members = ["swipewrite-core", "swipewrite-cli"]
+members = [
+    "deckmaster-core",
+    "deckmaster-cli",
+    "deckmaster-pptx"
+]
 resolver = "2"

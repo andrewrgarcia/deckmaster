@@ -1,12 +1,18 @@
 pub mod export;
 pub mod import;
 pub mod package;
+pub mod presentation_xml;
+pub mod presentation_parser;
+pub mod relationships;
 
 use thiserror::Error;
 
 pub use export::*;
 pub use import::*;
 pub use package::*;
+pub use presentation_xml::*;
+pub use presentation_parser::*;
+pub use relationships::*;
 
 #[derive(Debug, Error)]
 pub enum PptxError {

@@ -2,7 +2,6 @@ use deckmaster_core::{
     Color,
     Element,
     Presentation,
-    Rect,
     Slide,
     TextElement,
 };
@@ -65,7 +64,7 @@ impl PptxImporter {
                 )?;
 
             let texts =
-                SlideParser::extract_text(
+                SlideParser::extract_text_elements(
                     slide_xml.xml(),
                 )?;
 
@@ -80,13 +79,8 @@ impl PptxImporter {
                     Element::Text(
                         TextElement {
                             id: Uuid::new_v4(),
-                            bounds: Rect {
-                                x: 0.0,
-                                y: 0.0,
-                                width: 100.0,
-                                height: 30.0,
-                            },
-                            text,
+                            bounds: text.bounds,
+                            text: text.text,
                             font_size: 18.0,
                             color: Color::hex(
                                 "#000000",

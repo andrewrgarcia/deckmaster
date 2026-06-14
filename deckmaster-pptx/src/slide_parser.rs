@@ -1,4 +1,4 @@
-use deckmaster_core::Rect;
+use deckmaster_core::{Color, Rect};
 use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
 
@@ -10,6 +10,7 @@ pub struct ParsedTextElement {
     pub text: String,
     pub bounds: Rect,
     pub font_size: f32,
+    pub color: Color,
 }
 
 pub struct SlideParser;
@@ -39,7 +40,8 @@ impl SlideParser {
         let mut width = 100.0;
         let mut height = 30.0;
         let mut font_size = 18.0;
-
+        let mut color = Color::hex("#000000");
+        
         loop {
             match reader.read_event() {
                 Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
@@ -55,6 +57,7 @@ impl SlideParser {
                         width = 100.0;
                         height = 30.0;
                         font_size = 18.0;
+                        color = Color::hex("#000000");
                     }
 
                     if in_shape && name.as_ref().ends_with(b"off") {
@@ -80,6 +83,12 @@ impl SlideParser {
                     if in_shape && in_text && name.as_ref().ends_with(b"rPr") {
                         if let Some(value) = attr_i64(e, b"sz") {
                             font_size = value as f32 / 100.0;
+                        }
+                    }
+
+                    if in_shape && in_text && name.as_ref().ends_with(b"srgbClr") {
+                        if let Some(value) = attr_string(e, b"val") {
+                            color = Color::hex(format!("#{value}"));
                         }
                     }
 
@@ -117,6 +126,7 @@ impl SlideParser {
                                     height,
                                 },
                                 font_size,
+                                color: color.clone(),
                             });
                         }
 
@@ -138,6 +148,18 @@ impl SlideParser {
 
         Ok(elements)
     }
+}
+
+fn attr_string(e: &BytesStart<'_>, key: &[u8]) -> Option<String> {
+    for attr in e.attributes().flatten() {
+        if attr.key.as_ref() == key {
+            return Some(
+                String::from_utf8_lossy(attr.value.as_ref()).to_string(),
+            );
+        }
+    }
+
+    None
 }
 
 fn attr_i64(e: &BytesStart<'_>, key: &[u8]) -> Option<i64> {

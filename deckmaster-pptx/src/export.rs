@@ -171,6 +171,7 @@ fn generate_slide_xml(slide: &Slide) -> String {
             let cx = pt_to_emu(text.bounds.width);
             let cy = pt_to_emu(text.bounds.height);
             let font_size = (text.font_size * 100.0).round() as i64;
+            let color = pptx_rgb(&text.color.value);
 
             shapes.push_str(
                 &format!(
@@ -198,7 +199,11 @@ fn generate_slide_xml(slide: &Slide) -> String {
     <a:lstStyle/>
     <a:p>
       <a:r>
-        <a:rPr sz="{font_size}"/>
+        <a:rPr sz="{font_size}">
+        <a:solidFill>
+            <a:srgbClr val="{color}"/>
+        </a:solidFill>
+        </a:rPr>
         <a:t>{}</a:t>
       </a:r>
     </a:p>
@@ -344,6 +349,13 @@ fn remove_slide_content_type_overrides(xml: &str) -> String {
     }
 
     output
+}
+
+fn pptx_rgb(color: &str) -> String {
+    color
+        .trim()
+        .trim_start_matches('#')
+        .to_uppercase()
 }
 
 fn xml_escape(text: &str) -> String {

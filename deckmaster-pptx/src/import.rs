@@ -82,9 +82,7 @@ impl PptxImporter {
                             bounds: text.bounds,
                             text: text.text,
                             font_size: text.font_size,
-                            color: Color::hex(
-                                "#000000",
-                            ),
+                            color: text.color,
                         },
                     ),
                 );

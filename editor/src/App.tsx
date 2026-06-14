@@ -395,6 +395,52 @@ export default function App() {
       const key = event.key.toLowerCase();
       const commandKey = event.ctrlKey || event.metaKey;
 
+      if (
+        event.key === "ArrowUp" ||
+        event.key === "ArrowDown" ||
+        event.key === "ArrowLeft" ||
+        event.key === "ArrowRight"
+      ) {
+        if (!selectedElementId) {
+          return;
+        }
+
+        event.preventDefault();
+
+        const step = event.shiftKey ? 10 : 1;
+
+        let dx = 0;
+        let dy = 0;
+
+        if (event.key === "ArrowLeft") {
+          dx = -step;
+        }
+
+        if (event.key === "ArrowRight") {
+          dx = step;
+        }
+
+        if (event.key === "ArrowUp") {
+          dy = -step;
+        }
+
+        if (event.key === "ArrowDown") {
+          dy = step;
+        }
+
+        setDeck((current) =>
+          nudgeElement(
+            current,
+            selectedSlideIndex,
+            selectedElementId,
+            dx,
+            dy,
+          ),
+        );
+
+        return;
+      }
+
       if (commandKey && key === "c") {
         if (!selectedElementId) {
           return;
@@ -991,6 +1037,41 @@ function addElementToSlide(
       return {
         ...slide,
         elements: [...slide.elements, element],
+      };
+    }),
+  };
+}
+
+function nudgeElement(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+  dx: number,
+  dy: number,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: slide.elements.map((element) => {
+          if (element.id !== elementId) {
+            return element;
+          }
+
+          return {
+            ...element,
+            bounds: {
+              ...element.bounds,
+              x: element.bounds.x + dx,
+              y: element.bounds.y + dy,
+            },
+          };
+        }),
       };
     }),
   };

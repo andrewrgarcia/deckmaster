@@ -118,6 +118,8 @@ export default function App() {
   const dragState = useRef<DragState | null>(null);
   const resizeState = useRef<ResizeState | null>(null);
   const elementClipboard = useRef<Element | null>(null);
+  const undoStack = useRef<Presentation[]>([]);
+  const redoStack = useRef<Presentation[]>([]);
 
   const selectedSlide =
   deck.slides[selectedSlideIndex] ?? deck.slides[0];
@@ -129,12 +131,68 @@ export default function App() {
       const text = String(reader.result);
       const parsed = JSON.parse(text) as Presentation;
 
+      undoStack.current = [];
+      redoStack.current = [];
+
       setDeck(parsed);
       setSelectedSlideIndex(0);
       setSelectedElementId(null);
     };
 
     reader.readAsText(file);
+  }
+
+  function rememberCurrentDeck() {
+    undoStack.current.push(cloneDeck(deck));
+
+    if (undoStack.current.length > 100) {
+      undoStack.current.shift();
+    }
+
+    redoStack.current = [];
+  }
+
+  function commitDeck(
+    update: (current: Presentation) => Presentation,
+  ) {
+    rememberCurrentDeck();
+    setDeck(update);
+  }
+
+  function undo() {
+    const previous = undoStack.current.pop();
+
+    if (!previous) {
+      return;
+    }
+
+    redoStack.current.push(cloneDeck(deck));
+
+    setDeck(previous);
+
+    setSelectedSlideIndex((index) =>
+      Math.min(index, Math.max(0, previous.slides.length - 1)),
+    );
+
+    setSelectedElementId(null);
+  }
+
+  function redo() {
+    const next = redoStack.current.pop();
+
+    if (!next) {
+      return;
+    }
+
+    undoStack.current.push(cloneDeck(deck));
+
+    setDeck(next);
+
+    setSelectedSlideIndex((index) =>
+      Math.min(index, Math.max(0, next.slides.length - 1)),
+    );
+
+    setSelectedElementId(null);
   }
 
   function downloadDeck() {
@@ -161,6 +219,8 @@ export default function App() {
 
     setSelectedElementId(element.id);
 
+    rememberCurrentDeck();
+
     dragState.current = {
       slideIndex,
       elementId: element.id,
@@ -184,7 +244,7 @@ export default function App() {
       elements: [],
     };
 
-    setDeck((current) => ({
+    commitDeck((current) => ({
       ...current,
       slides: [...current.slides, newSlide],
     }));
@@ -194,7 +254,7 @@ export default function App() {
   }
 
   function renameCurrentSlide(name: string) {
-    setDeck((current) =>
+    commitDeck((current) =>
       renameSlideAt(current, selectedSlideIndex, name),
     );
   }
@@ -209,7 +269,7 @@ export default function App() {
         ? selectedSlideIndex - 1
         : selectedSlideIndex;
 
-    setDeck((current) => deleteSlideAt(current, selectedSlideIndex));
+    commitDeck((current) => deleteSlideAt(current, selectedSlideIndex));
     setSelectedSlideIndex(nextSlideIndex);
     setSelectedElementId(null);
   }
@@ -219,7 +279,7 @@ export default function App() {
       return;
     }
 
-    setDeck((current) =>
+    commitDeck((current) =>
       deleteElement(
         current,
         selectedSlideIndex,
@@ -241,7 +301,7 @@ export default function App() {
 
     const newSlideIndex = selectedSlideIndex + 1;
 
-    setDeck((current) =>
+    commitDeck((current) =>
       insertSlideAt(current, newSlideIndex, duplicatedSlide),
     );
 
@@ -266,7 +326,7 @@ export default function App() {
       },
     };
 
-    setDeck((current) =>
+    commitDeck((current) =>
       addTextElement(current, selectedSlideIndex, newElement),
     );
 
@@ -281,6 +341,8 @@ export default function App() {
     event.stopPropagation();
 
     setSelectedElementId(element.id);
+
+    rememberCurrentDeck();
 
     resizeState.current = {
       slideIndex,
@@ -342,7 +404,7 @@ export default function App() {
       return;
     }
 
-    setDeck((current) =>
+    commitDeck((current) =>
       updateText(current, selectedSlideIndex, selectedElementId, value),
     );
   }
@@ -356,7 +418,7 @@ export default function App() {
       ? Math.max(4, Math.min(160, value))
       : 32;
 
-    setDeck((current) =>
+    commitDeck((current) =>
       updateFontSize(
         current,
         selectedSlideIndex,
@@ -371,7 +433,7 @@ export default function App() {
       return;
     }
 
-    setDeck((current) =>
+    commitDeck((current) =>
       updateColor(
         current,
         selectedSlideIndex,
@@ -394,6 +456,24 @@ export default function App() {
 
       const key = event.key.toLowerCase();
       const commandKey = event.ctrlKey || event.metaKey;
+
+      if (commandKey && key === "z" && event.shiftKey) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (commandKey && key === "z") {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if (commandKey && key === "y") {
+        event.preventDefault();
+        redo();
+        return;
+      }
 
       if (
         event.key === "ArrowUp" ||
@@ -428,7 +508,7 @@ export default function App() {
           dy = step;
         }
 
-        setDeck((current) =>
+        commitDeck((current) =>
           nudgeElement(
             current,
             selectedSlideIndex,
@@ -474,7 +554,7 @@ export default function App() {
 
         const pastedElement = cloneElementWithOffset(copiedElement);
 
-        setDeck((current) =>
+        commitDeck((current) =>
           addElementToSlide(
             current,
             selectedSlideIndex,
@@ -497,7 +577,7 @@ export default function App() {
 
       event.preventDefault();
 
-      setDeck((current) =>
+      commitDeck((current) =>
         deleteElement(
           current,
           selectedSlideIndex,
@@ -541,6 +621,8 @@ export default function App() {
         </label>
 
         <button onClick={downloadDeck}>Download .deck.json</button>
+        <button onClick={undo}>Undo</button>
+        <button onClick={redo}>Redo</button>
         <button onClick={addSlide}>Add slide</button>
         <button onClick={duplicateCurrentSlide}>Duplicate slide</button>
         <button
@@ -1112,3 +1194,6 @@ function cloneElementWithOffset(element: Element): Element {
   return element;
 }
 
+function cloneDeck(deck: Presentation): Presentation {
+  return JSON.parse(JSON.stringify(deck)) as Presentation;
+}

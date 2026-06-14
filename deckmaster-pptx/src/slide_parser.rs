@@ -9,6 +9,7 @@ use crate::Result;
 pub struct ParsedTextElement {
     pub text: String,
     pub bounds: Rect,
+    pub font_size: f32,
 }
 
 pub struct SlideParser;
@@ -37,6 +38,7 @@ impl SlideParser {
         let mut y = 0.0;
         let mut width = 100.0;
         let mut height = 30.0;
+        let mut font_size = 18.0;
 
         loop {
             match reader.read_event() {
@@ -52,6 +54,7 @@ impl SlideParser {
                         y = 0.0;
                         width = 100.0;
                         height = 30.0;
+                        font_size = 18.0;
                     }
 
                     if in_shape && name.as_ref().ends_with(b"off") {
@@ -71,6 +74,12 @@ impl SlideParser {
 
                         if let Some(value) = attr_i64(e, b"cy") {
                             height = emu_to_pt(value);
+                        }
+                    }
+
+                    if in_shape && in_text && name.as_ref().ends_with(b"rPr") {
+                        if let Some(value) = attr_i64(e, b"sz") {
+                            font_size = value as f32 / 100.0;
                         }
                     }
 
@@ -107,6 +116,7 @@ impl SlideParser {
                                     width,
                                     height,
                                 },
+                                font_size,
                             });
                         }
 

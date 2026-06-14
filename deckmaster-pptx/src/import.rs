@@ -81,7 +81,7 @@ impl PptxImporter {
                             id: Uuid::new_v4(),
                             bounds: text.bounds,
                             text: text.text,
-                            font_size: 18.0,
+                            font_size: text.font_size,
                             color: Color::hex(
                                 "#000000",
                             ),

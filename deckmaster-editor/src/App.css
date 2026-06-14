@@ -118,3 +118,15 @@ textarea {
   border-color: #8ab4f8;
   outline: 2px solid rgba(138, 180, 248, 0.35);
 }
+
+.resizeHandle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #8ab4f8;
+  border-radius: 50%;
+  background: #202124;
+  cursor: nwse-resize;
+}

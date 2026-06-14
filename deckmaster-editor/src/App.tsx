@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import "./App.css";
 
 type Rect = {
@@ -98,6 +99,15 @@ type DragState = {
   startElementY: number;
 };
 
+type ResizeState = {
+  slideIndex: number;
+  elementId: string;
+  startMouseX: number;
+  startMouseY: number;
+  startWidth: number;
+  startHeight: number;
+};
+
 export default function App() {
   const [deck, setDeck] = useState<Presentation>(initialDeck);
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
@@ -106,6 +116,7 @@ export default function App() {
   );
 
   const dragState = useRef<DragState | null>(null);
+  const resizeState = useRef<ResizeState | null>(null);
 
   const selectedSlide = deck.slides[selectedSlideIndex];
 
@@ -140,7 +151,7 @@ export default function App() {
   }
 
   function startDrag(
-    event: React.MouseEvent,
+    event: MouseEvent,
     slideIndex: number,
     element: TextElement,
   ) {
@@ -158,7 +169,48 @@ export default function App() {
     };
   }
 
-  function onMouseMove(event: React.MouseEvent) {
+  function startResize(
+    event: MouseEvent,
+    slideIndex: number,
+    element: TextElement,
+  ) {
+    event.stopPropagation();
+
+    setSelectedElementId(element.id);
+
+    resizeState.current = {
+      slideIndex,
+      elementId: element.id,
+      startMouseX: event.clientX,
+      startMouseY: event.clientY,
+      startWidth: element.bounds.width,
+      startHeight: element.bounds.height,
+    };
+  }
+
+  function onMouseMove(event: MouseEvent) {
+    const resize = resizeState.current;
+
+    if (resize) {
+      const dx = event.clientX - resize.startMouseX;
+      const dy = event.clientY - resize.startMouseY;
+
+      const nextWidth = Math.max(40, resize.startWidth + dx);
+      const nextHeight = Math.max(24, resize.startHeight + dy);
+
+      setDeck((current) =>
+        resizeElement(
+          current,
+          resize.slideIndex,
+          resize.elementId,
+          nextWidth,
+          nextHeight,
+        ),
+      );
+
+      return;
+    }
+
     const drag = dragState.current;
 
     if (!drag) {
@@ -171,11 +223,14 @@ export default function App() {
     const nextX = drag.startElementX + dx;
     const nextY = drag.startElementY + dy;
 
-    setDeck((current) => moveElement(current, drag.slideIndex, drag.elementId, nextX, nextY));
+    setDeck((current) =>
+      moveElement(current, drag.slideIndex, drag.elementId, nextX, nextY),
+    );
   }
 
-  function stopDrag() {
+  function stopInteraction() {
     dragState.current = null;
+    resizeState.current = null;
   }
 
   function updateSelectedText(value: string) {
@@ -196,8 +251,8 @@ export default function App() {
     <main
       className="app"
       onMouseMove={onMouseMove}
-      onMouseUp={stopDrag}
-      onMouseLeave={stopDrag}
+      onMouseUp={stopInteraction}
+      onMouseLeave={stopInteraction}
     >
       <aside className="sidebar">
         <h1>DeckMaster Editor</h1>
@@ -248,7 +303,10 @@ export default function App() {
         )}
       </aside>
 
-      <section className="workspace" onMouseDown={() => setSelectedElementId(null)}>
+      <section
+        className="workspace"
+        onMouseDown={() => setSelectedElementId(null)}
+      >
         <div
           className="slideCanvas"
           style={{
@@ -281,6 +339,15 @@ export default function App() {
                 }
               >
                 {element.text}
+
+                {selected ? (
+                  <div
+                    className="resizeHandle"
+                    onMouseDown={(event) =>
+                      startResize(event, selectedSlideIndex, element)
+                    }
+                  />
+                ) : null}
               </div>
             );
           })}
@@ -317,6 +384,41 @@ function moveElement(
               ...element.bounds,
               x,
               y,
+            },
+          };
+        }),
+      };
+    }),
+  };
+}
+
+function resizeElement(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+  width: number,
+  height: number,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: slide.elements.map((element) => {
+          if (element.id !== elementId) {
+            return element;
+          }
+
+          return {
+            ...element,
+            bounds: {
+              ...element.bounds,
+              width,
+              height,
             },
           };
         }),

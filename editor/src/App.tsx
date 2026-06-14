@@ -118,7 +118,8 @@ export default function App() {
   const dragState = useRef<DragState | null>(null);
   const resizeState = useRef<ResizeState | null>(null);
 
-  const selectedSlide = deck.slides[selectedSlideIndex];
+  const selectedSlide =
+  deck.slides[selectedSlideIndex] ?? deck.slides[0];
 
   function loadDeckFile(file: File) {
     const reader = new FileReader();
@@ -167,6 +168,28 @@ export default function App() {
       startElementX: element.bounds.x,
       startElementY: element.bounds.y,
     };
+  }
+
+  function addSlide() {
+    const slideNumber = deck.slides.length + 1;
+
+    const newSlide: Slide = {
+      id: crypto.randomUUID(),
+      name: `Slide ${slideNumber}`,
+      size: {
+        width: 960,
+        height: 540,
+      },
+      elements: [],
+    };
+
+    setDeck((current) => ({
+      ...current,
+      slides: [...current.slides, newSlide],
+    }));
+
+    setSelectedSlideIndex(deck.slides.length);
+    setSelectedElementId(null);
   }
 
   function addTextToCurrentSlide() {
@@ -332,6 +355,7 @@ export default function App() {
         </label>
 
         <button onClick={downloadDeck}>Download .deck.json</button>
+        <button onClick={addSlide}>Add slide</button>
         <button onClick={addTextToCurrentSlide}>Add text</button>
 
         <h2>Slides</h2>
@@ -397,6 +421,7 @@ export default function App() {
         className="workspace"
         onMouseDown={() => setSelectedElementId(null)}
       >
+      {selectedSlide ? (
         <div
           className="slideCanvas"
           style={{
@@ -442,6 +467,9 @@ export default function App() {
             );
           })}
         </div>
+      ) : (
+        <p className="muted">No slide selected.</p>
+      )}
       </section>
     </main>
   );

@@ -25,13 +25,8 @@ import {
   updateFontSize,
   updateText,
 } from "./model/deckOps";
-import type {
-  Element,
-  Presentation,
-  TextElement,
-} from "./model/types";
+import type { Element, Presentation, TextElement } from "./model/types";
 import { isEditableTarget } from "./utils/dom";
-
 
 type DragState = {
   slideIndex: number;
@@ -57,15 +52,23 @@ export default function App() {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
+  const [editingElementId, setEditingElementId] = useState<string | null>(
+    null,
+  );
+  const [editingText, setEditingText] = useState("");
 
+  const editorInput = useRef<HTMLTextAreaElement | null>(null);
   const dragState = useRef<DragState | null>(null);
   const resizeState = useRef<ResizeState | null>(null);
   const elementClipboard = useRef<Element | null>(null);
   const undoStack = useRef<Presentation[]>([]);
   const redoStack = useRef<Presentation[]>([]);
 
-  const selectedSlide =
-  deck.slides[selectedSlideIndex] ?? deck.slides[0];
+  const selectedSlide = deck.slides[selectedSlideIndex] ?? deck.slides[0];
+
+  const selectedTextElement = selectedSlide?.elements.find(
+    (element) => element.id === selectedElementId && element.type === "Text",
+  ) as TextElement | undefined;
 
   function loadDeckFile(file: File) {
     const reader = new FileReader();
@@ -80,6 +83,8 @@ export default function App() {
       setDeck(parsed);
       setSelectedSlideIndex(0);
       setSelectedElementId(null);
+      setEditingElementId(null);
+      setEditingText("");
     };
 
     reader.readAsText(file);
@@ -95,9 +100,7 @@ export default function App() {
     redoStack.current = [];
   }
 
-  function commitDeck(
-    update: (current: Presentation) => Presentation,
-  ) {
+  function commitDeck(update: (current: Presentation) => Presentation) {
     rememberCurrentDeck();
     setDeck(update);
   }
@@ -118,6 +121,8 @@ export default function App() {
     );
 
     setSelectedElementId(null);
+    setEditingElementId(null);
+    setEditingText("");
   }
 
   function redo() {
@@ -136,6 +141,8 @@ export default function App() {
     );
 
     setSelectedElementId(null);
+    setEditingElementId(null);
+    setEditingText("");
   }
 
   function downloadDeck() {
@@ -153,27 +160,6 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
-  function startDrag(
-    event: MouseEvent,
-    slideIndex: number,
-    element: TextElement,
-  ) {
-    event.stopPropagation();
-
-    setSelectedElementId(element.id);
-
-    rememberCurrentDeck();
-
-    dragState.current = {
-      slideIndex,
-      elementId: element.id,
-      startMouseX: event.clientX,
-      startMouseY: event.clientY,
-      startElementX: element.bounds.x,
-      startElementY: element.bounds.y,
-    };
-  }
-
   function addSlide() {
     const newSlide = createBlankSlide(deck.slides.length + 1);
 
@@ -184,12 +170,28 @@ export default function App() {
 
     setSelectedSlideIndex(deck.slides.length);
     setSelectedElementId(null);
+    setEditingElementId(null);
+    setEditingText("");
   }
 
-  function renameCurrentSlide(name: string) {
+  function duplicateCurrentSlide() {
+    const sourceSlide = deck.slides[selectedSlideIndex];
+
+    if (!sourceSlide) {
+      return;
+    }
+
+    const duplicatedSlide = cloneSlide(sourceSlide);
+    const newSlideIndex = selectedSlideIndex + 1;
+
     commitDeck((current) =>
-      renameSlideAt(current, selectedSlideIndex, name),
+      insertSlideAt(current, newSlideIndex, duplicatedSlide),
     );
+
+    setSelectedSlideIndex(newSlideIndex);
+    setSelectedElementId(null);
+    setEditingElementId(null);
+    setEditingText("");
   }
 
   function deleteCurrentSlide() {
@@ -203,43 +205,15 @@ export default function App() {
         : selectedSlideIndex;
 
     commitDeck((current) => deleteSlideAt(current, selectedSlideIndex));
+
     setSelectedSlideIndex(nextSlideIndex);
     setSelectedElementId(null);
+    setEditingElementId(null);
+    setEditingText("");
   }
 
-  function deleteSelectedElement() {
-    if (!selectedElementId) {
-      return;
-    }
-
-    commitDeck((current) =>
-      deleteElement(
-        current,
-        selectedSlideIndex,
-        selectedElementId,
-      ),
-    );
-
-    setSelectedElementId(null);
-  }
-
-  function duplicateCurrentSlide() {
-    const sourceSlide = deck.slides[selectedSlideIndex];
-
-    if (!sourceSlide) {
-      return;
-    }
-
-    const duplicatedSlide = cloneSlide(sourceSlide);
-
-    const newSlideIndex = selectedSlideIndex + 1;
-
-    commitDeck((current) =>
-      insertSlideAt(current, newSlideIndex, duplicatedSlide),
-    );
-
-    setSelectedSlideIndex(newSlideIndex);
-    setSelectedElementId(null);
+  function renameCurrentSlide(name: string) {
+    commitDeck((current) => renameSlideAt(current, selectedSlideIndex, name));
   }
 
   function addTextToCurrentSlide() {
@@ -250,6 +224,45 @@ export default function App() {
     );
 
     setSelectedElementId(newElement.id);
+    setEditingElementId(null);
+    setEditingText("");
+  }
+
+  function deleteSelectedElement() {
+    if (!selectedElementId) {
+      return;
+    }
+
+    commitDeck((current) =>
+      deleteElement(current, selectedSlideIndex, selectedElementId),
+    );
+
+    setSelectedElementId(null);
+    setEditingElementId(null);
+    setEditingText("");
+  }
+
+  function startDrag(
+    event: MouseEvent,
+    slideIndex: number,
+    element: TextElement,
+  ) {
+    event.stopPropagation();
+
+    setSelectedElementId(element.id);
+    setEditingElementId(null);
+    setEditingText("");
+
+    rememberCurrentDeck();
+
+    dragState.current = {
+      slideIndex,
+      elementId: element.id,
+      startMouseX: event.clientX,
+      startMouseY: event.clientY,
+      startElementX: element.bounds.x,
+      startElementY: element.bounds.y,
+    };
   }
 
   function startResize(
@@ -260,6 +273,8 @@ export default function App() {
     event.stopPropagation();
 
     setSelectedElementId(element.id);
+    setEditingElementId(null);
+    setEditingText("");
 
     rememberCurrentDeck();
 
@@ -271,6 +286,37 @@ export default function App() {
       startWidth: element.bounds.width,
       startHeight: element.bounds.height,
     };
+  }
+
+  function startEditingText(event: MouseEvent, element: TextElement) {
+    event.stopPropagation();
+
+    setSelectedElementId(element.id);
+    setEditingElementId(element.id);
+    setEditingText(element.text);
+
+    rememberCurrentDeck();
+  }
+
+  function finishEditingText() {
+    if (!editingElementId) {
+      return;
+    }
+
+    const elementId = editingElementId;
+    const nextText = editingText;
+
+    setDeck((current) =>
+      updateText(current, selectedSlideIndex, elementId, nextText),
+    );
+
+    setEditingElementId(null);
+    setEditingText("");
+  }
+
+  function cancelEditingText() {
+    setEditingElementId(null);
+    setEditingText("");
   }
 
   function onMouseMove(event: MouseEvent) {
@@ -318,16 +364,6 @@ export default function App() {
     resizeState.current = null;
   }
 
-  function updateSelectedText(value: string) {
-    if (!selectedElementId) {
-      return;
-    }
-
-    commitDeck((current) =>
-      updateText(current, selectedSlideIndex, selectedElementId, value),
-    );
-  }
-
   function updateSelectedFontSize(value: number) {
     if (!selectedElementId) {
       return;
@@ -362,13 +398,26 @@ export default function App() {
     );
   }
 
-  
-  const selectedTextElement = selectedSlide?.elements.find(
-    (element) => element.id === selectedElementId && element.type === "Text",
-  ) as TextElement | undefined;
+  useEffect(() => {
+    if (!editingElementId || !editorInput.current) {
+      return;
+    }
+
+    editorInput.current.focus();
+    editorInput.current.select();
+  }, [editingElementId]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      if (editingElementId) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          cancelEditingText();
+        }
+
+        return;
+      }
+
       if (isEditableTarget(event.target)) {
         return;
       }
@@ -428,13 +477,7 @@ export default function App() {
         }
 
         commitDeck((current) =>
-          nudgeElement(
-            current,
-            selectedSlideIndex,
-            selectedElementId,
-            dx,
-            dy,
-          ),
+          nudgeElement(current, selectedSlideIndex, selectedElementId, dx, dy),
         );
 
         return;
@@ -474,14 +517,12 @@ export default function App() {
         const pastedElement = cloneElementWithOffset(copiedElement);
 
         commitDeck((current) =>
-          addElementToSlide(
-            current,
-            selectedSlideIndex,
-            pastedElement,
-          ),
+          addElementToSlide(current, selectedSlideIndex, pastedElement),
         );
 
         setSelectedElementId(pastedElement.id);
+        setEditingElementId(null);
+        setEditingText("");
 
         return;
       }
@@ -497,14 +538,12 @@ export default function App() {
       event.preventDefault();
 
       commitDeck((current) =>
-        deleteElement(
-          current,
-          selectedSlideIndex,
-          selectedElementId,
-        ),
+        deleteElement(current, selectedSlideIndex, selectedElementId),
       );
 
       setSelectedElementId(null);
+      setEditingElementId(null);
+      setEditingText("");
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -512,7 +551,7 @@ export default function App() {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [deck, selectedElementId, selectedSlideIndex]);
+  }, [deck, selectedElementId, selectedSlideIndex, editingElementId]);
 
   return (
     <main
@@ -544,10 +583,7 @@ export default function App() {
         <button onClick={redo}>Redo</button>
         <button onClick={addSlide}>Add slide</button>
         <button onClick={duplicateCurrentSlide}>Duplicate slide</button>
-        <button
-          onClick={deleteCurrentSlide}
-          disabled={deck.slides.length <= 1}
-        >
+        <button onClick={deleteCurrentSlide} disabled={deck.slides.length <= 1}>
           Delete slide
         </button>
         <button onClick={addTextToCurrentSlide}>Add text</button>
@@ -562,6 +598,8 @@ export default function App() {
               onClick={() => {
                 setSelectedSlideIndex(index);
                 setSelectedElementId(null);
+                setEditingElementId(null);
+                setEditingText("");
               }}
             >
               {index + 1}. {slide.name ?? "Untitled"}
@@ -599,13 +637,9 @@ export default function App() {
 
         {selectedTextElement ? (
           <div className="selectedControls">
-            <label>
-              Text
-              <textarea
-                value={selectedTextElement.text}
-                onChange={(event) => updateSelectedText(event.target.value)}
-              />
-            </label>
+            <p className="muted">
+              Double-click the text box to edit text directly.
+            </p>
 
             <label>
               Font size
@@ -632,13 +666,9 @@ export default function App() {
               />
             </label>
 
-            <button
-              className="dangerButton"
-              onClick={deleteSelectedElement}
-            >
+            <button className="dangerButton" onClick={deleteSelectedElement}>
               Delete selected element
             </button>
-
           </div>
         ) : (
           <p className="muted">Click a text box.</p>
@@ -647,57 +677,83 @@ export default function App() {
 
       <section
         className="workspace"
-        onMouseDown={() => setSelectedElementId(null)}
+        onMouseDown={() => {
+          if (editingElementId) {
+            finishEditingText();
+          }
+
+          setSelectedElementId(null);
+        }}
       >
-      {selectedSlide ? (
-        <div
-          className="slideCanvas"
-          style={{
-            width: selectedSlide.size.width,
-            height: selectedSlide.size.height,
-            background: deck.theme.background.value,
-          }}
-        >
-          {selectedSlide.elements.map((element) => {
-            if (element.type !== "Text") {
-              return null;
-            }
+        {selectedSlide ? (
+          <div
+            className="slideCanvas"
+            style={{
+              width: selectedSlide.size.width,
+              height: selectedSlide.size.height,
+              background: deck.theme.background.value,
+            }}
+          >
+            {selectedSlide.elements.map((element) => {
+              if (element.type !== "Text") {
+                return null;
+              }
 
-            const selected = selectedElementId === element.id;
+              const selected = selectedElementId === element.id;
+              const editing = editingElementId === element.id;
 
-            return (
-              <div
-                key={element.id}
-                className={`textBox ${selected ? "selected" : ""}`}
-                style={{
-                  left: element.bounds.x,
-                  top: element.bounds.y,
-                  width: element.bounds.width,
-                  height: element.bounds.height,
-                  fontSize: element.font_size,
-                  color: element.color.value,
-                }}
-                onMouseDown={(event) =>
-                  startDrag(event, selectedSlideIndex, element)
-                }
-              >
-                {element.text}
-
-                {selected ? (
-                  <div
-                    className="resizeHandle"
-                    onMouseDown={(event) =>
-                      startResize(event, selectedSlideIndex, element)
+              return (
+                <div
+                  key={element.id}
+                  className={`textBox ${selected ? "selected" : ""} ${
+                    editing ? "editing" : ""
+                  }`}
+                  style={{
+                    left: element.bounds.x,
+                    top: element.bounds.y,
+                    width: element.bounds.width,
+                    height: element.bounds.height,
+                    fontSize: element.font_size,
+                    color: element.color.value,
+                  }}
+                  onMouseDown={(event) => {
+                    if (editing) {
+                      event.stopPropagation();
+                      return;
                     }
-                  />
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="muted">No slide selected.</p>
-      )}
+
+                    startDrag(event, selectedSlideIndex, element);
+                  }}
+                  onDoubleClick={(event) => startEditingText(event, element)}
+                >
+                  {editing ? (
+                    <textarea
+                      ref={editorInput}
+                      className="inlineTextEditor"
+                      value={editingText}
+                      onChange={(event) => setEditingText(event.target.value)}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onBlur={finishEditingText}
+                    />
+                  ) : (
+                    element.text
+                  )}
+
+                  {selected && !editing ? (
+                    <div
+                      className="resizeHandle"
+                      onMouseDown={(event) =>
+                        startResize(event, selectedSlideIndex, element)
+                      }
+                    />
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="muted">No slide selected.</p>
+        )}
       </section>
     </main>
   );

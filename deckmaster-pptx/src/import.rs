@@ -1,5 +1,4 @@
 use deckmaster_core::{
-    Color,
     Element,
     Presentation,
     Slide,

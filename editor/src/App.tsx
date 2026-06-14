@@ -192,6 +192,25 @@ export default function App() {
     setSelectedElementId(null);
   }
 
+  function duplicateCurrentSlide() {
+    const sourceSlide = deck.slides[selectedSlideIndex];
+
+    if (!sourceSlide) {
+      return;
+    }
+
+    const duplicatedSlide = cloneSlide(sourceSlide);
+
+    const newSlideIndex = selectedSlideIndex + 1;
+
+    setDeck((current) =>
+      insertSlideAt(current, newSlideIndex, duplicatedSlide),
+    );
+
+    setSelectedSlideIndex(newSlideIndex);
+    setSelectedElementId(null);
+  }
+
   function addTextToCurrentSlide() {
     const newElement: TextElement = {
       type: "Text",
@@ -356,6 +375,7 @@ export default function App() {
 
         <button onClick={downloadDeck}>Download .deck.json</button>
         <button onClick={addSlide}>Add slide</button>
+        <button onClick={duplicateCurrentSlide}>Duplicate slide</button>
         <button onClick={addTextToCurrentSlide}>Add text</button>
 
         <h2>Slides</h2>
@@ -669,4 +689,45 @@ function normalizeHexColor(value: string): string {
   }
 
   return "#111111";
+}
+
+function insertSlideAt(
+  deck: Presentation,
+  index: number,
+  slide: Slide,
+): Presentation {
+  const slides = [...deck.slides];
+
+  slides.splice(index, 0, slide);
+
+  return {
+    ...deck,
+    slides,
+  };
+}
+
+function cloneSlide(slide: Slide): Slide {
+  return {
+    ...slide,
+    id: crypto.randomUUID(),
+    name: slide.name ? `${slide.name} Copy` : "Untitled Copy",
+    elements: slide.elements.map(cloneElement),
+  };
+}
+
+function cloneElement(element: Element): Element {
+  if (element.type === "Text") {
+    return {
+      ...element,
+      id: crypto.randomUUID(),
+      bounds: {
+        ...element.bounds,
+      },
+      color: {
+        ...element.color,
+      },
+    };
+  }
+
+  return element;
 }

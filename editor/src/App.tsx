@@ -267,6 +267,41 @@ export default function App() {
     );
   }
 
+  function updateSelectedFontSize(value: number) {
+    if (!selectedElementId) {
+      return;
+    }
+
+    const safeValue = Number.isFinite(value)
+      ? Math.max(4, Math.min(160, value))
+      : 32;
+
+    setDeck((current) =>
+      updateFontSize(
+        current,
+        selectedSlideIndex,
+        selectedElementId,
+        safeValue,
+      ),
+    );
+  }
+
+  function updateSelectedColor(value: string) {
+    if (!selectedElementId) {
+      return;
+    }
+
+    setDeck((current) =>
+      updateColor(
+        current,
+        selectedSlideIndex,
+        selectedElementId,
+        normalizeHexColor(value),
+      ),
+    );
+  }
+
+  
   const selectedTextElement = selectedSlide?.elements.find(
     (element) => element.id === selectedElementId && element.type === "Text",
   ) as TextElement | undefined;
@@ -319,10 +354,40 @@ export default function App() {
         <h2>Selected text</h2>
 
         {selectedTextElement ? (
-          <textarea
-            value={selectedTextElement.text}
-            onChange={(event) => updateSelectedText(event.target.value)}
-          />
+          <div className="selectedControls">
+            <label>
+              Text
+              <textarea
+                value={selectedTextElement.text}
+                onChange={(event) => updateSelectedText(event.target.value)}
+              />
+            </label>
+
+            <label>
+              Font size
+              <input
+                className="numberInput"
+                type="number"
+                min={4}
+                max={160}
+                step={1}
+                value={selectedTextElement.font_size}
+                onChange={(event) =>
+                  updateSelectedFontSize(Number(event.target.value))
+                }
+              />
+            </label>
+
+            <label>
+              Color
+              <input
+                className="colorInput"
+                type="color"
+                value={normalizeHexColor(selectedTextElement.color.value)}
+                onChange={(event) => updateSelectedColor(event.target.value)}
+              />
+            </label>
+          </div>
         ) : (
           <p className="muted">Click a text box.</p>
         )}
@@ -500,4 +565,80 @@ function addTextElement(
       };
     }),
   };
+}
+
+function updateFontSize(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+  fontSize: number,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: slide.elements.map((element) => {
+          if (element.id !== elementId || element.type !== "Text") {
+            return element;
+          }
+
+          return {
+            ...element,
+            font_size: fontSize,
+          };
+        }),
+      };
+    }),
+  };
+}
+
+function updateColor(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+  color: string,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: slide.elements.map((element) => {
+          if (element.id !== elementId || element.type !== "Text") {
+            return element;
+          }
+
+          return {
+            ...element,
+            color: {
+              value: color,
+            },
+          };
+        }),
+      };
+    }),
+  };
+}
+
+function normalizeHexColor(value: string): string {
+  const trimmed = value.trim();
+
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+
+  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return `#${trimmed.toUpperCase()}`;
+  }
+
+  return "#111111";
 }

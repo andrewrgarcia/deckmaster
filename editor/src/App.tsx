@@ -117,6 +117,7 @@ export default function App() {
 
   const dragState = useRef<DragState | null>(null);
   const resizeState = useRef<ResizeState | null>(null);
+  const elementClipboard = useRef<Element | null>(null);
 
   const selectedSlide =
   deck.slides[selectedSlideIndex] ?? deck.slides[0];
@@ -391,6 +392,55 @@ export default function App() {
         return;
       }
 
+      const key = event.key.toLowerCase();
+      const commandKey = event.ctrlKey || event.metaKey;
+
+      if (commandKey && key === "c") {
+        if (!selectedElementId) {
+          return;
+        }
+
+        const selectedElement = findElement(
+          deck,
+          selectedSlideIndex,
+          selectedElementId,
+        );
+
+        if (!selectedElement) {
+          return;
+        }
+
+        event.preventDefault();
+
+        elementClipboard.current = cloneElementForClipboard(selectedElement);
+
+        return;
+      }
+
+      if (commandKey && key === "v") {
+        const copiedElement = elementClipboard.current;
+
+        if (!copiedElement) {
+          return;
+        }
+
+        event.preventDefault();
+
+        const pastedElement = cloneElementWithOffset(copiedElement);
+
+        setDeck((current) =>
+          addElementToSlide(
+            current,
+            selectedSlideIndex,
+            pastedElement,
+          ),
+        );
+
+        setSelectedElementId(pastedElement.id);
+
+        return;
+      }
+
       if (event.key !== "Delete" && event.key !== "Backspace") {
         return;
       }
@@ -417,8 +467,7 @@ export default function App() {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [selectedElementId, selectedSlideIndex]);
-
+  }, [deck, selectedElementId, selectedSlideIndex]);
 
   return (
     <main
@@ -910,3 +959,75 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target.isContentEditable
   );
 }
+
+function findElement(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+): Element | null {
+  const slide = deck.slides[slideIndex];
+
+  if (!slide) {
+    return null;
+  }
+
+  return (
+    slide.elements.find((element) => element.id === elementId) ?? null
+  );
+}
+
+function addElementToSlide(
+  deck: Presentation,
+  slideIndex: number,
+  element: Element,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: [...slide.elements, element],
+      };
+    }),
+  };
+}
+
+function cloneElementForClipboard(element: Element): Element {
+  if (element.type === "Text") {
+    return {
+      ...element,
+      bounds: {
+        ...element.bounds,
+      },
+      color: {
+        ...element.color,
+      },
+    };
+  }
+
+  return element;
+}
+
+function cloneElementWithOffset(element: Element): Element {
+  if (element.type === "Text") {
+    return {
+      ...element,
+      id: crypto.randomUUID(),
+      bounds: {
+        ...element.bounds,
+        x: element.bounds.x + 24,
+        y: element.bounds.y + 24,
+      },
+      color: {
+        ...element.color,
+      },
+    };
+  }
+
+  return element;
+}
+

@@ -1,0 +1,120 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #202124;
+  color: #f1f3f4;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  border-right: 1px solid #3c4043;
+  padding: 20px;
+  background: #151718;
+  overflow: auto;
+}
+
+.sidebar h1 {
+  font-size: 22px;
+  margin: 0 0 20px;
+}
+
+.sidebar h2 {
+  font-size: 14px;
+  margin: 24px 0 10px;
+  color: #bdc1c6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sidebar button,
+.fileButton {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  border: 1px solid #5f6368;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #2b2c2f;
+  color: #f1f3f4;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar button:hover,
+.fileButton:hover {
+  background: #35363a;
+}
+
+.fileButton input {
+  display: none;
+}
+
+.slideList button.active {
+  border-color: #8ab4f8;
+  background: #1f3557;
+}
+
+textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid #5f6368;
+  border-radius: 8px;
+  padding: 10px;
+  background: #202124;
+  color: #f1f3f4;
+}
+
+.muted {
+  color: #9aa0a6;
+}
+
+.workspace {
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 40px;
+}
+
+.slideCanvas {
+  position: relative;
+  flex: none;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.textBox {
+  position: absolute;
+  border: 1px dashed transparent;
+  padding: 4px;
+  white-space: pre-wrap;
+  overflow: hidden;
+  cursor: move;
+  user-select: none;
+}
+
+.textBox:hover {
+  border-color: #8ab4f8;
+}
+
+.textBox.selected {
+  border-color: #8ab4f8;
+  outline: 2px solid rgba(138, 180, 248, 0.35);
+}

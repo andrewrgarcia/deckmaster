@@ -7,3 +7,4 @@ edition = "2024"
 clap = { version = "4", features = ["derive"] }
 deckmaster-core = { path = "../deckmaster-core" }
 deckmaster-pptx = { path = "../deckmaster-pptx" }
+uuid = "1"

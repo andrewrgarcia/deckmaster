@@ -1,11 +1,15 @@
 use clap::{Parser, Subcommand};
 use deckmaster_core::{
     io::{from_json, to_json},
+    move_element as core_move_element,
+    resize_element as core_resize_element,
+    update_text as core_update_text,
     Document, Element, Presentation, Slide,
 };
 use deckmaster_pptx::{PptxExporter, PptxImporter};
 use std::fs;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 #[derive(Parser)]
 #[command(name = "deckmaster")]
@@ -47,6 +51,29 @@ enum Commands {
         input: PathBuf,
         output: PathBuf,
     },
+
+    MoveElement {
+        file: PathBuf,
+        slide_id: Uuid,
+        element_id: Uuid,
+        x: f32,
+        y: f32,
+    },
+
+    ResizeElement {
+        file: PathBuf,
+        slide_id: Uuid,
+        element_id: Uuid,
+        width: f32,
+        height: f32,
+    },
+
+    UpdateText {
+        file: PathBuf,
+        slide_id: Uuid,
+        element_id: Uuid,
+        text: String,
+    },
 }
 
 fn main() {
@@ -61,6 +88,46 @@ fn main() {
         }
         Commands::Import { input, output } => import_pptx(input, output),
         Commands::Export { input, output } => export_pptx(input, output),
+        
+        Commands::MoveElement {
+            file,
+            slide_id,
+            element_id,
+            x,
+            y,
+        } => move_element_command(
+            file,
+            slide_id,
+            element_id,
+            x,
+            y,
+        ),
+
+        Commands::ResizeElement {
+            file,
+            slide_id,
+            element_id,
+            width,
+            height,
+        } => resize_element_command(
+            file,
+            slide_id,
+            element_id,
+            width,
+            height,
+        ),
+
+        Commands::UpdateText {
+            file,
+            slide_id,
+            element_id,
+            text,
+        } => update_text_command(
+            file,
+            slide_id,
+            element_id,
+            text,
+        ),
     };
 
     if let Err(err) = result {
@@ -197,6 +264,76 @@ fn inspect(file: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+
+    Ok(())
+}
+
+fn move_element_command(
+    file: PathBuf,
+    slide_id: Uuid,
+    element_id: Uuid,
+    x: f32,
+    y: f32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut document = Document::open(&file)?;
+
+    core_move_element(
+        document.presentation_mut(),
+        slide_id,
+        element_id,
+        x,
+        y,
+    )?;
+
+    document.save()?;
+
+    println!("Element moved.");
+
+    Ok(())
+}
+
+fn resize_element_command(
+    file: PathBuf,
+    slide_id: Uuid,
+    element_id: Uuid,
+    width: f32,
+    height: f32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut document = Document::open(&file)?;
+
+    core_resize_element(
+        document.presentation_mut(),
+        slide_id,
+        element_id,
+        width,
+        height,
+    )?;
+
+    document.save()?;
+
+    println!("Element resized.");
+
+    Ok(())
+}
+
+fn update_text_command(
+    file: PathBuf,
+    slide_id: Uuid,
+    element_id: Uuid,
+    text: String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut document = Document::open(&file)?;
+
+    core_update_text(
+        document.presentation_mut(),
+        slide_id,
+        element_id,
+        text,
+    )?;
+
+    document.save()?;
+
+    println!("Text updated.");
 
     Ok(())
 }

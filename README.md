@@ -1,8 +1,13 @@
-# DeckMaster
+<!-- LOGO -->
+<p align="center">
+    <img height="300" alt="deckmaster" src="https://github.com/user-attachments/assets/cc2a920e-e676-4a16-a5b8-f991a1900c80" />
+</p>
+
+<h1 align="center">DeckMaster</h1>
+
 
 <p align="center">
-<img width="950" alt="Screenshot from 2026-06-09 00-23-38" src="https://github.com/user-attachments/assets/d1a991a9-fed0-493f-a976-43bce0936f50" />
-<img  width="950" alt="Screenshot from 2026-06-09 00-56-30" src="https://github.com/user-attachments/assets/f1b9c572-df53-4872-a3b7-cfd24e8f4fb0" />
+  <img width="1536" height="1024" alt="ChatGPT Image Jun 14, 2026, 05_45_43 PM" src="https://github.com/user-attachments/assets/d103cbe3-af25-497d-b401-972800208ccb" />
 </p>
 
 **DeckMaster** is an open-source bidirectional presentation engine written in Rust.

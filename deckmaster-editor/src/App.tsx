@@ -169,6 +169,30 @@ export default function App() {
     };
   }
 
+  function addTextToCurrentSlide() {
+    const newElement: TextElement = {
+      type: "Text",
+      id: crypto.randomUUID(),
+      bounds: {
+        x: 120,
+        y: 120,
+        width: 420,
+        height: 80,
+      },
+      text: "New text",
+      font_size: 32,
+      color: {
+        value: "#111111",
+      },
+    };
+
+    setDeck((current) =>
+      addTextElement(current, selectedSlideIndex, newElement),
+    );
+
+    setSelectedElementId(newElement.id);
+  }
+
   function startResize(
     event: MouseEvent,
     slideIndex: number,
@@ -273,6 +297,7 @@ export default function App() {
         </label>
 
         <button onClick={downloadDeck}>Download .deck.json</button>
+        <button onClick={addTextToCurrentSlide}>Add text</button>
 
         <h2>Slides</h2>
 
@@ -452,6 +477,26 @@ function updateText(
             text,
           };
         }),
+      };
+    }),
+  };
+}
+
+function addTextElement(
+  deck: Presentation,
+  slideIndex: number,
+  element: TextElement,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: [...slide.elements, element],
       };
     }),
   };

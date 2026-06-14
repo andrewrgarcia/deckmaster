@@ -62,6 +62,11 @@ textarea {
   background: #35363a;
 }
 
+.sidebar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .fileButton input {
   display: none;
 }

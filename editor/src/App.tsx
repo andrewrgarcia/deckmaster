@@ -192,6 +192,21 @@ export default function App() {
     setSelectedElementId(null);
   }
 
+  function deleteCurrentSlide() {
+    if (deck.slides.length <= 1) {
+      return;
+    }
+
+    const nextSlideIndex =
+      selectedSlideIndex === deck.slides.length - 1
+        ? selectedSlideIndex - 1
+        : selectedSlideIndex;
+
+    setDeck((current) => deleteSlideAt(current, selectedSlideIndex));
+    setSelectedSlideIndex(nextSlideIndex);
+    setSelectedElementId(null);
+  }
+
   function duplicateCurrentSlide() {
     const sourceSlide = deck.slides[selectedSlideIndex];
 
@@ -376,6 +391,12 @@ export default function App() {
         <button onClick={downloadDeck}>Download .deck.json</button>
         <button onClick={addSlide}>Add slide</button>
         <button onClick={duplicateCurrentSlide}>Duplicate slide</button>
+        <button
+          onClick={deleteCurrentSlide}
+          disabled={deck.slides.length <= 1}
+        >
+          Delete slide
+        </button>
         <button onClick={addTextToCurrentSlide}>Add text</button>
 
         <h2>Slides</h2>
@@ -730,4 +751,14 @@ function cloneElement(element: Element): Element {
   }
 
   return element;
+}
+
+function deleteSlideAt(
+  deck: Presentation,
+  indexToDelete: number,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.filter((_, index) => index !== indexToDelete),
+  };
 }

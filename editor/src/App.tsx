@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import "./App.css";
 
@@ -192,6 +192,12 @@ export default function App() {
     setSelectedElementId(null);
   }
 
+  function renameCurrentSlide(name: string) {
+    setDeck((current) =>
+      renameSlideAt(current, selectedSlideIndex, name),
+    );
+  }
+
   function deleteCurrentSlide() {
     if (deck.slides.length <= 1) {
       return;
@@ -204,6 +210,22 @@ export default function App() {
 
     setDeck((current) => deleteSlideAt(current, selectedSlideIndex));
     setSelectedSlideIndex(nextSlideIndex);
+    setSelectedElementId(null);
+  }
+
+  function deleteSelectedElement() {
+    if (!selectedElementId) {
+      return;
+    }
+
+    setDeck((current) =>
+      deleteElement(
+        current,
+        selectedSlideIndex,
+        selectedElementId,
+      ),
+    );
+
     setSelectedElementId(null);
   }
 
@@ -363,6 +385,41 @@ export default function App() {
     (element) => element.id === selectedElementId && element.type === "Text",
   ) as TextElement | undefined;
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      if (event.key !== "Delete" && event.key !== "Backspace") {
+        return;
+      }
+
+      if (!selectedElementId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      setDeck((current) =>
+        deleteElement(
+          current,
+          selectedSlideIndex,
+          selectedElementId,
+        ),
+      );
+
+      setSelectedElementId(null);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [selectedElementId, selectedSlideIndex]);
+
+
   return (
     <main
       className="app"
@@ -416,6 +473,32 @@ export default function App() {
           ))}
         </div>
 
+        <h2>Selected slide</h2>
+
+        {selectedSlide ? (
+          <div className="selectedControls">
+            <label>
+              Slide name
+              <input
+                className="textInput"
+                type="text"
+                value={selectedSlide.name ?? ""}
+                onChange={(event) => renameCurrentSlide(event.target.value)}
+              />
+            </label>
+
+            <button
+              className="dangerButton"
+              onClick={deleteCurrentSlide}
+              disabled={deck.slides.length <= 1}
+            >
+              Delete slide
+            </button>
+          </div>
+        ) : (
+          <p className="muted">No slide selected.</p>
+        )}
+
         <h2>Selected text</h2>
 
         {selectedTextElement ? (
@@ -452,6 +535,14 @@ export default function App() {
                 onChange={(event) => updateSelectedColor(event.target.value)}
               />
             </label>
+
+            <button
+              className="dangerButton"
+              onClick={deleteSelectedElement}
+            >
+              Delete selected element
+            </button>
+
           </div>
         ) : (
           <p className="muted">Click a text box.</p>
@@ -753,6 +844,27 @@ function cloneElement(element: Element): Element {
   return element;
 }
 
+
+function renameSlideAt(
+  deck: Presentation,
+  slideIndex: number,
+  name: string,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        name,
+      };
+    }),
+  };
+}
+
 function deleteSlideAt(
   deck: Presentation,
   indexToDelete: number,
@@ -761,4 +873,40 @@ function deleteSlideAt(
     ...deck,
     slides: deck.slides.filter((_, index) => index !== indexToDelete),
   };
+}
+
+function deleteElement(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: slide.elements.filter(
+          (element) => element.id !== elementId,
+        ),
+      };
+    }),
+  };
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tagName = target.tagName.toLowerCase();
+
+  return (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    target.isContentEditable
+  );
 }

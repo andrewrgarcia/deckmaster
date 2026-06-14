@@ -166,3 +166,26 @@ textarea {
   background: #202124;
   cursor: pointer;
 }
+
+.textInput {
+  width: 100%;
+  border: 1px solid #5f6368;
+  border-radius: 8px;
+  padding: 10px;
+  background: #202124;
+  color: #f1f3f4;
+}
+
+.dangerButton {
+  border-color: #8b3a3a !important;
+  color: #ffd7d7 !important;
+}
+
+.dangerButton:hover {
+  background: #3a2020 !important;
+}
+
+.sidebar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -1,15 +1,16 @@
 use clap::{Parser, Subcommand};
 use deckmaster_core::{
     io::{from_json, to_json},
-    Presentation, Slide,
+    Document, Element, Presentation, Slide,
 };
+use deckmaster_pptx::{PptxExporter, PptxImporter};
 use std::fs;
 use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "deckmaster")]
 #[command(version = "0.1.0")]
-#[command(about = "Deckmaster presentation engine CLI")]
+#[command(about = "DeckMaster presentation engine CLI")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -36,6 +37,16 @@ enum Commands {
         slide: usize,
         text: String,
     },
+
+    Import {
+        input: PathBuf,
+        output: PathBuf,
+    },
+
+    Export {
+        input: PathBuf,
+        output: PathBuf,
+    },
 }
 
 fn main() {
@@ -45,12 +56,11 @@ fn main() {
         Commands::Inspect { file } => inspect(file),
         Commands::New { file, title } => create_new(file, title),
         Commands::AddSlide { file, title } => add_slide(file, title),
-
-        Commands::AddText {
-            file,
-            slide,
-            text,
-        } => add_text(file, slide, text),
+        Commands::AddText { file, slide, text } => {
+            add_text(file, slide, text)
+        }
+        Commands::Import { input, output } => import_pptx(input, output),
+        Commands::Export { input, output } => export_pptx(input, output),
     };
 
     if let Err(err) = result {
@@ -68,7 +78,7 @@ fn create_new(
     let mut slide = Slide::new(Some("Slide 1".to_string()));
 
     slide.add_text(
-        "Welcome to Deckmaster",
+        "Welcome to DeckMaster",
         100.0,
         100.0,
         500.0,
@@ -88,25 +98,11 @@ fn add_slide(
     file: PathBuf,
     title: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let source = fs::read_to_string(&file)?;
+    let mut document = Document::open(&file)?;
 
-    let mut presentation = from_json(&source)?;
+    document.add_slide(title);
 
-    let slide_number = presentation.slides.len() + 1;
-
-    let mut slide = Slide::new(Some(title));
-
-    slide.add_text(
-        format!("Slide {}", slide_number),
-        100.0,
-        100.0,
-        500.0,
-        100.0,
-    );
-
-    presentation.slides.push(slide);
-
-    fs::write(&file, to_json(&presentation)?)?;
+    document.save()?;
 
     println!("Slide added.");
 
@@ -118,26 +114,45 @@ fn add_text(
     slide: usize,
     text: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let source = fs::read_to_string(&file)?;
+    if slide == 0 {
+        return Err("slide numbers start at 1".into());
+    }
 
-    let mut presentation = from_json(&source)?;
+    let mut document = Document::open(&file)?;
 
-    let slide_ref = presentation
-        .slides
-        .get_mut(slide - 1)
-        .ok_or("slide does not exist")?;
+    document.add_text(slide - 1, text)?;
 
-    slide_ref.add_text(
-        text,
-        100.0,
-        200.0,
-        600.0,
-        100.0,
-    );
-
-    fs::write(&file, to_json(&presentation)?)?;
+    document.save()?;
 
     println!("Text added.");
+
+    Ok(())
+}
+
+fn import_pptx(
+    input: PathBuf,
+    output: PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let presentation = PptxImporter::import(input)?;
+
+    fs::write(output, to_json(&presentation)?)?;
+
+    println!("PPTX imported.");
+
+    Ok(())
+}
+
+fn export_pptx(
+    input: PathBuf,
+    output: PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let source = fs::read_to_string(input)?;
+
+    let presentation = from_json(&source)?;
+
+    PptxExporter::export(&presentation, output)?;
+
+    println!("PPTX exported.");
 
     Ok(())
 }
@@ -155,31 +170,28 @@ fn inspect(file: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 
         println!();
         println!("Slide {}: {}", index + 1, name);
+        println!("  ID: {}", slide.id);
         println!("  Elements: {}", slide.elements.len());
 
         for element in &slide.elements {
             match element {
-                deckmaster_core::Element::Text(text) => {
-                    println!(
-                        "  - Text [{}]: {}",
-                        text.id,
-                        text.text
-                    );
+                Element::Text(text) => {
+                    println!("  - Text [{}]: {}", text.id, text.text);
                 }
 
-                deckmaster_core::Element::Image(image) => {
+                Element::Image(image) => {
                     println!("  - Image [{}]", image.id);
                 }
 
-                deckmaster_core::Element::Shape(shape) => {
+                Element::Shape(shape) => {
                     println!("  - Shape [{}]", shape.id);
                 }
 
-                deckmaster_core::Element::Table(table) => {
+                Element::Table(table) => {
                     println!("  - Table [{}]", table.id);
                 }
 
-                deckmaster_core::Element::Chart(chart) => {
+                Element::Chart(chart) => {
                     println!("  - Chart [{}]", chart.id);
                 }
             }

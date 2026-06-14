@@ -6,6 +6,7 @@ pub mod presentation_parser;
 pub mod relationships;
 pub mod slide_xml;
 pub mod slide_parser;
+pub mod units;
 
 use thiserror::Error;
 
@@ -17,6 +18,7 @@ pub use presentation_parser::*;
 pub use relationships::*;
 pub use slide_xml::*;
 pub use slide_parser::*;
+pub use units::*;
 
 #[derive(Debug, Error)]
 pub enum PptxError {

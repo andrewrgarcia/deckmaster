@@ -1,5 +1,6 @@
 use deckmaster_core::{Element, Presentation};
 
+use crate::units::pt_to_emu;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -100,46 +101,46 @@ fn generate_slide_xml(
             let id =
                 100 + index;
 
-            let y =
-                1_000_000
-                    + (index as i64
-                        * 800_000);
+            let x = pt_to_emu(text.bounds.x);
+            let y = pt_to_emu(text.bounds.y);
+            let cx = pt_to_emu(text.bounds.width);
+            let cy = pt_to_emu(text.bounds.height);
+            let font_size = (text.font_size * 100.0).round() as i64;
 
             shapes.push_str(
                 &format!(
-r#"
-<p:sp>
-  <p:nvSpPr>
-    <p:cNvPr id="{id}" name="Text{id}"/>
-    <p:cNvSpPr txBox="1"/>
-    <p:nvPr/>
-  </p:nvSpPr>
+            r#"
+            <p:sp>
+            <p:nvSpPr>
+                <p:cNvPr id="{id}" name="Text{id}"/>
+                <p:cNvSpPr txBox="1"/>
+                <p:nvPr/>
+            </p:nvSpPr>
 
-  <p:spPr>
-    <a:xfrm>
-      <a:off x="500000" y="{y}"/>
-      <a:ext cx="7000000" cy="500000"/>
-    </a:xfrm>
+            <p:spPr>
+                <a:xfrm>
+                <a:off x="{x}" y="{y}"/>
+                <a:ext cx="{cx}" cy="{cy}"/>
+                </a:xfrm>
 
-    <a:prstGeom prst="rect">
-      <a:avLst/>
-    </a:prstGeom>
-  </p:spPr>
+                <a:prstGeom prst="rect">
+                <a:avLst/>
+                </a:prstGeom>
+            </p:spPr>
 
-  <p:txBody>
-    <a:bodyPr/>
-    <a:lstStyle/>
-    <a:p>
-      <a:r>
-        <a:t>{}</a:t>
-      </a:r>
-    </a:p>
-  </p:txBody>
-</p:sp>
-"#,
-                    xml_escape(
-                        &text.text
-                    )
+            <p:txBody>
+                <a:bodyPr/>
+                <a:lstStyle/>
+                <a:p>
+                <a:r>
+                    <a:rPr sz="{font_size}"/>
+                    <a:t>{}</a:t>
+                </a:r>
+                </a:p>
+            </p:txBody>
+            </p:sp>
+            "#,
+                    xml_escape(&text.text)
                 ),
             );
         }

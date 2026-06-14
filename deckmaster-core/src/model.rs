@@ -76,8 +76,11 @@ pub struct SlideSize {
 impl SlideSize {
     pub fn widescreen() -> Self {
         Self {
-            width: 13.333,
-            height: 7.5,
+            // Canonical DeckMaster units are points.
+            // 16:9 widescreen = 13.333in × 7.5in.
+            // 1 inch = 72 points.
+            width: 960.0,
+            height: 540.0,
         }
     }
 }

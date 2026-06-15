@@ -18,7 +18,15 @@ export type TextElement = {
   color: Color;
 };
 
-export type Element = TextElement;
+export type ImageElement = {
+  type: "Image";
+  id: string;
+  bounds: Rect;
+  src: string;
+  alt: string | null;
+};
+
+export type Element = TextElement | ImageElement;
 
 export type Slide = {
   id: string;

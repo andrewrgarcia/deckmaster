@@ -1,4 +1,9 @@
-import type { Presentation, Slide, TextElement } from "../model/types";
+import type {
+  ImageElement,
+  Presentation,
+  Slide,
+  TextElement,
+} from "../model/types";
 import { normalizeHexColor } from "../model/deckOps";
 
 type SidebarProps = {
@@ -6,6 +11,7 @@ type SidebarProps = {
   selectedSlide: Slide | undefined;
   selectedSlideIndex: number;
   selectedTextElement: TextElement | undefined;
+  selectedImageElement: ImageElement | undefined;
 
   onLoadDeckFile: (file: File) => void;
   onDownloadDeck: () => void;
@@ -16,6 +22,7 @@ type SidebarProps = {
   onDuplicateCurrentSlide: () => void;
   onDeleteCurrentSlide: () => void;
   onAddTextToCurrentSlide: () => void;
+  onAddImageToCurrentSlide: (file: File) => void;
 
   onSelectSlide: (index: number) => void;
   onRenameCurrentSlide: (name: string) => void;
@@ -30,6 +37,7 @@ export function Sidebar({
   selectedSlide,
   selectedSlideIndex,
   selectedTextElement,
+  selectedImageElement,
   onLoadDeckFile,
   onDownloadDeck,
   onUndo,
@@ -38,6 +46,7 @@ export function Sidebar({
   onDuplicateCurrentSlide,
   onDeleteCurrentSlide,
   onAddTextToCurrentSlide,
+  onAddImageToCurrentSlide,
   onSelectSlide,
   onRenameCurrentSlide,
   onUpdateSelectedFontSize,
@@ -59,6 +68,8 @@ export function Sidebar({
             if (file) {
               onLoadDeckFile(file);
             }
+
+            event.currentTarget.value = "";
           }}
         />
       </label>
@@ -68,10 +79,29 @@ export function Sidebar({
       <button onClick={onRedo}>Redo</button>
       <button onClick={onAddSlide}>Add slide</button>
       <button onClick={onDuplicateCurrentSlide}>Duplicate slide</button>
+
       <button onClick={onDeleteCurrentSlide} disabled={deck.slides.length <= 1}>
         Delete slide
       </button>
+
       <button onClick={onAddTextToCurrentSlide}>Add text</button>
+
+      <label className="fileButton">
+        Add image
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+
+            if (file) {
+              onAddImageToCurrentSlide(file);
+            }
+
+            event.currentTarget.value = "";
+          }}
+        />
+      </label>
 
       <h2>Slides</h2>
 
@@ -113,7 +143,7 @@ export function Sidebar({
         <p className="muted">No slide selected.</p>
       )}
 
-      <h2>Selected text</h2>
+      <h2>Selected element</h2>
 
       {selectedTextElement ? (
         <div className="selectedControls">
@@ -150,8 +180,18 @@ export function Sidebar({
             Delete selected element
           </button>
         </div>
+      ) : selectedImageElement ? (
+        <div className="selectedControls">
+          <p className="muted">
+            Image selected. Drag to move, resize from the corner.
+          </p>
+
+          <button className="dangerButton" onClick={onDeleteSelectedElement}>
+            Delete selected image
+          </button>
+        </div>
       ) : (
-        <p className="muted">Click a text box.</p>
+        <p className="muted">Click a text box or image.</p>
       )}
     </aside>
   );

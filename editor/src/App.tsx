@@ -14,6 +14,7 @@ import {
   cloneSlide,
   createBlankSlide,
   createDefaultTextElement,
+  createImageElement,
   deleteElement,
   deleteSlideAt,
   findElement,
@@ -27,7 +28,12 @@ import {
   updateFontSize,
   updateText,
 } from "./model/deckOps";
-import type { Element, Presentation, TextElement } from "./model/types";
+import type {
+  Element,
+  ImageElement,
+  Presentation,
+  TextElement,
+} from "./model/types";
 import { isEditableTarget } from "./utils/dom";
 
 type DragState = {
@@ -48,6 +54,11 @@ type ResizeState = {
   startHeight: number;
 };
 
+type EditingSession = {
+  slideIndex: number;
+  elementId: string;
+};
+
 export default function App() {
   const [deck, setDeck] = useState<Presentation>(initialDeck);
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
@@ -65,12 +76,23 @@ export default function App() {
   const elementClipboard = useRef<Element | null>(null);
   const undoStack = useRef<Presentation[]>([]);
   const redoStack = useRef<Presentation[]>([]);
+  const editingSession = useRef<EditingSession | null>(null);
 
   const selectedSlide = deck.slides[selectedSlideIndex] ?? deck.slides[0];
 
   const selectedTextElement = selectedSlide?.elements.find(
     (element) => element.id === selectedElementId && element.type === "Text",
   ) as TextElement | undefined;
+
+  const selectedImageElement = selectedSlide?.elements.find(
+    (element) => element.id === selectedElementId && element.type === "Image",
+  ) as ImageElement | undefined;
+
+  function clearEditingState() {
+    editingSession.current = null;
+    setEditingElementId(null);
+    setEditingText("");
+  }
 
   function loadDeckFile(file: File) {
     const reader = new FileReader();
@@ -85,8 +107,7 @@ export default function App() {
       setDeck(parsed);
       setSelectedSlideIndex(0);
       setSelectedElementId(null);
-      setEditingElementId(null);
-      setEditingText("");
+      clearEditingState();
     };
 
     reader.readAsText(file);
@@ -123,8 +144,7 @@ export default function App() {
     );
 
     setSelectedElementId(null);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function redo() {
@@ -143,11 +163,12 @@ export default function App() {
     );
 
     setSelectedElementId(null);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function downloadDeck() {
+    finishEditingText();
+
     const blob = new Blob([JSON.stringify(deck, null, 2)], {
       type: "application/json",
     });
@@ -163,6 +184,8 @@ export default function App() {
   }
 
   function addSlide() {
+    finishEditingText();
+
     const newSlide = createBlankSlide(deck.slides.length + 1);
 
     commitDeck((current) => ({
@@ -172,11 +195,12 @@ export default function App() {
 
     setSelectedSlideIndex(deck.slides.length);
     setSelectedElementId(null);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function duplicateCurrentSlide() {
+    finishEditingText();
+
     const sourceSlide = deck.slides[selectedSlideIndex];
 
     if (!sourceSlide) {
@@ -192,11 +216,12 @@ export default function App() {
 
     setSelectedSlideIndex(newSlideIndex);
     setSelectedElementId(null);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function deleteCurrentSlide() {
+    finishEditingText();
+
     if (deck.slides.length <= 1) {
       return;
     }
@@ -210,8 +235,7 @@ export default function App() {
 
     setSelectedSlideIndex(nextSlideIndex);
     setSelectedElementId(null);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function renameCurrentSlide(name: string) {
@@ -219,6 +243,8 @@ export default function App() {
   }
 
   function addTextToCurrentSlide() {
+    finishEditingText();
+
     const newElement = createDefaultTextElement();
 
     commitDeck((current) =>
@@ -226,11 +252,32 @@ export default function App() {
     );
 
     setSelectedElementId(newElement.id);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
+  }
+
+  function addImageToCurrentSlide(file: File) {
+    finishEditingText();
+
+    const slideIndex = selectedSlideIndex;
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const src = String(reader.result);
+      const newElement = createImageElement(src, file.name);
+
+      commitDeck((current) => addElementToSlide(current, slideIndex, newElement));
+
+      setSelectedSlideIndex(slideIndex);
+      setSelectedElementId(newElement.id);
+      clearEditingState();
+    };
+
+    reader.readAsDataURL(file);
   }
 
   function deleteSelectedElement() {
+    finishEditingText();
+
     if (!selectedElementId) {
       return;
     }
@@ -240,20 +287,20 @@ export default function App() {
     );
 
     setSelectedElementId(null);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function startDrag(
     event: MouseEvent,
     slideIndex: number,
-    element: TextElement,
+    element: Element,
   ) {
     event.stopPropagation();
 
+    finishEditingText();
+
     setSelectedElementId(element.id);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
 
     rememberCurrentDeck();
 
@@ -270,13 +317,14 @@ export default function App() {
   function startResize(
     event: MouseEvent,
     slideIndex: number,
-    element: TextElement,
+    element: Element,
   ) {
     event.stopPropagation();
 
+    finishEditingText();
+
     setSelectedElementId(element.id);
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
 
     rememberCurrentDeck();
 
@@ -293,6 +341,18 @@ export default function App() {
   function startEditingText(event: MouseEvent, element: TextElement) {
     event.stopPropagation();
 
+    if (
+      editingSession.current &&
+      editingSession.current.elementId !== element.id
+    ) {
+      finishEditingText();
+    }
+
+    editingSession.current = {
+      slideIndex: selectedSlideIndex,
+      elementId: element.id,
+    };
+
     setSelectedElementId(element.id);
     setEditingElementId(element.id);
     setEditingText(element.text);
@@ -301,15 +361,18 @@ export default function App() {
   }
 
   function finishEditingText() {
-    if (!editingElementId) {
+    const session = editingSession.current;
+
+    if (!session) {
       return;
     }
 
-    const elementId = editingElementId;
-    const nextText = editingText;
+    const nextText = editorInput.current?.value ?? editingText;
+
+    editingSession.current = null;
 
     setDeck((current) =>
-      updateText(current, selectedSlideIndex, elementId, nextText),
+      updateText(current, session.slideIndex, session.elementId, nextText),
     );
 
     setEditingElementId(null);
@@ -317,8 +380,7 @@ export default function App() {
   }
 
   function cancelEditingText() {
-    setEditingElementId(null);
-    setEditingText("");
+    clearEditingState();
   }
 
   function onMouseMove(event: MouseEvent) {
@@ -367,6 +429,8 @@ export default function App() {
   }
 
   function updateSelectedFontSize(value: number) {
+    finishEditingText();
+
     if (!selectedElementId) {
       return;
     }
@@ -386,6 +450,8 @@ export default function App() {
   }
 
   function updateSelectedColor(value: string) {
+    finishEditingText();
+
     if (!selectedElementId) {
       return;
     }
@@ -398,6 +464,19 @@ export default function App() {
         normalizeHexColor(value),
       ),
     );
+  }
+
+  function selectSlide(index: number) {
+    finishEditingText();
+
+    setSelectedSlideIndex(index);
+    setSelectedElementId(null);
+    clearEditingState();
+  }
+
+  function clearSelectionFromWorkspace() {
+    finishEditingText();
+    setSelectedElementId(null);
   }
 
   useEffect(() => {
@@ -444,7 +523,7 @@ export default function App() {
         redo();
         return;
       }
-
+      
       if (
         event.key === "ArrowUp" ||
         event.key === "ArrowDown" ||
@@ -523,8 +602,7 @@ export default function App() {
         );
 
         setSelectedElementId(pastedElement.id);
-        setEditingElementId(null);
-        setEditingText("");
+        clearEditingState();
 
         return;
       }
@@ -544,8 +622,7 @@ export default function App() {
       );
 
       setSelectedElementId(null);
-      setEditingElementId(null);
-      setEditingText("");
+      clearEditingState();
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -567,6 +644,7 @@ export default function App() {
         selectedSlide={selectedSlide}
         selectedSlideIndex={selectedSlideIndex}
         selectedTextElement={selectedTextElement}
+        selectedImageElement={selectedImageElement}
         onLoadDeckFile={loadDeckFile}
         onDownloadDeck={downloadDeck}
         onUndo={undo}
@@ -575,12 +653,8 @@ export default function App() {
         onDuplicateCurrentSlide={duplicateCurrentSlide}
         onDeleteCurrentSlide={deleteCurrentSlide}
         onAddTextToCurrentSlide={addTextToCurrentSlide}
-        onSelectSlide={(index) => {
-          setSelectedSlideIndex(index);
-          setSelectedElementId(null);
-          setEditingElementId(null);
-          setEditingText("");
-        }}
+        onAddImageToCurrentSlide={addImageToCurrentSlide}
+        onSelectSlide={selectSlide}
         onRenameCurrentSlide={renameCurrentSlide}
         onUpdateSelectedFontSize={updateSelectedFontSize}
         onUpdateSelectedColor={updateSelectedColor}
@@ -595,13 +669,7 @@ export default function App() {
         editingElementId={editingElementId}
         editingText={editingText}
         editorInput={editorInput}
-        onWorkspaceMouseDown={() => {
-          if (editingElementId) {
-            finishEditingText();
-          }
-
-          setSelectedElementId(null);
-        }}
+        onWorkspaceMouseDown={clearSelectionFromWorkspace}
         onStartDrag={startDrag}
         onStartResize={startResize}
         onStartEditingText={startEditingText}

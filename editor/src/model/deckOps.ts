@@ -1,5 +1,6 @@
 import type {
   Element,
+  ImageElement,
   Presentation,
   Slide,
   TextElement,
@@ -35,6 +36,24 @@ export function createDefaultTextElement(): TextElement {
   };
 }
 
+export function createImageElement(
+  src: string,
+  alt: string | null,
+): ImageElement {
+  return {
+    type: "Image",
+    id: crypto.randomUUID(),
+    bounds: {
+      x: 120,
+      y: 120,
+      width: 320,
+      height: 180,
+    },
+    src,
+    alt,
+  };
+}
+
 export function moveElement(
   deck: Presentation,
   slideIndex: number,
@@ -42,32 +61,14 @@ export function moveElement(
   x: number,
   y: number,
 ): Presentation {
-  return {
-    ...deck,
-    slides: deck.slides.map((slide, index) => {
-      if (index !== slideIndex) {
-        return slide;
-      }
-
-      return {
-        ...slide,
-        elements: slide.elements.map((element) => {
-          if (element.id !== elementId) {
-            return element;
-          }
-
-          return {
-            ...element,
-            bounds: {
-              ...element.bounds,
-              x,
-              y,
-            },
-          };
-        }),
-      };
-    }),
-  };
+  return updateElement(deck, slideIndex, elementId, (element) => ({
+    ...element,
+    bounds: {
+      ...element.bounds,
+      x,
+      y,
+    },
+  }));
 }
 
 export function resizeElement(
@@ -77,32 +78,14 @@ export function resizeElement(
   width: number,
   height: number,
 ): Presentation {
-  return {
-    ...deck,
-    slides: deck.slides.map((slide, index) => {
-      if (index !== slideIndex) {
-        return slide;
-      }
-
-      return {
-        ...slide,
-        elements: slide.elements.map((element) => {
-          if (element.id !== elementId) {
-            return element;
-          }
-
-          return {
-            ...element,
-            bounds: {
-              ...element.bounds,
-              width,
-              height,
-            },
-          };
-        }),
-      };
-    }),
-  };
+  return updateElement(deck, slideIndex, elementId, (element) => ({
+    ...element,
+    bounds: {
+      ...element.bounds,
+      width,
+      height,
+    },
+  }));
 }
 
 export function nudgeElement(
@@ -112,32 +95,14 @@ export function nudgeElement(
   dx: number,
   dy: number,
 ): Presentation {
-  return {
-    ...deck,
-    slides: deck.slides.map((slide, index) => {
-      if (index !== slideIndex) {
-        return slide;
-      }
-
-      return {
-        ...slide,
-        elements: slide.elements.map((element) => {
-          if (element.id !== elementId) {
-            return element;
-          }
-
-          return {
-            ...element,
-            bounds: {
-              ...element.bounds,
-              x: element.bounds.x + dx,
-              y: element.bounds.y + dy,
-            },
-          };
-        }),
-      };
-    }),
-  };
+  return updateElement(deck, slideIndex, elementId, (element) => ({
+    ...element,
+    bounds: {
+      ...element.bounds,
+      x: element.bounds.x + dx,
+      y: element.bounds.y + dy,
+    },
+  }));
 }
 
 export function updateText(
@@ -146,28 +111,16 @@ export function updateText(
   elementId: string,
   text: string,
 ): Presentation {
-  return {
-    ...deck,
-    slides: deck.slides.map((slide, index) => {
-      if (index !== slideIndex) {
-        return slide;
-      }
+  return updateElement(deck, slideIndex, elementId, (element) => {
+    if (element.type !== "Text") {
+      return element;
+    }
 
-      return {
-        ...slide,
-        elements: slide.elements.map((element) => {
-          if (element.id !== elementId || element.type !== "Text") {
-            return element;
-          }
-
-          return {
-            ...element,
-            text,
-          };
-        }),
-      };
-    }),
-  };
+    return {
+      ...element,
+      text,
+    };
+  });
 }
 
 export function updateFontSize(
@@ -176,28 +129,16 @@ export function updateFontSize(
   elementId: string,
   fontSize: number,
 ): Presentation {
-  return {
-    ...deck,
-    slides: deck.slides.map((slide, index) => {
-      if (index !== slideIndex) {
-        return slide;
-      }
+  return updateElement(deck, slideIndex, elementId, (element) => {
+    if (element.type !== "Text") {
+      return element;
+    }
 
-      return {
-        ...slide,
-        elements: slide.elements.map((element) => {
-          if (element.id !== elementId || element.type !== "Text") {
-            return element;
-          }
-
-          return {
-            ...element,
-            font_size: fontSize,
-          };
-        }),
-      };
-    }),
-  };
+    return {
+      ...element,
+      font_size: fontSize,
+    };
+  });
 }
 
 export function updateColor(
@@ -206,30 +147,18 @@ export function updateColor(
   elementId: string,
   color: string,
 ): Presentation {
-  return {
-    ...deck,
-    slides: deck.slides.map((slide, index) => {
-      if (index !== slideIndex) {
-        return slide;
-      }
+  return updateElement(deck, slideIndex, elementId, (element) => {
+    if (element.type !== "Text") {
+      return element;
+    }
 
-      return {
-        ...slide,
-        elements: slide.elements.map((element) => {
-          if (element.id !== elementId || element.type !== "Text") {
-            return element;
-          }
-
-          return {
-            ...element,
-            color: {
-              value: color,
-            },
-          };
-        }),
-      };
-    }),
-  };
+    return {
+      ...element,
+      color: {
+        value: color,
+      },
+    };
+  });
 }
 
 export function addTextElement(
@@ -293,9 +222,7 @@ export function findElement(
     return null;
   }
 
-  return (
-    slide.elements.find((element) => element.id === elementId) ?? null
-  );
+  return slide.elements.find((element) => element.id === elementId) ?? null;
 }
 
 export function insertSlideAt(
@@ -366,7 +293,13 @@ export function cloneElement(element: Element): Element {
     };
   }
 
-  return element;
+  return {
+    ...element,
+    id: crypto.randomUUID(),
+    bounds: {
+      ...element.bounds,
+    },
+  };
 }
 
 export function cloneElementForClipboard(element: Element): Element {
@@ -382,26 +315,25 @@ export function cloneElementForClipboard(element: Element): Element {
     };
   }
 
-  return element;
+  return {
+    ...element,
+    bounds: {
+      ...element.bounds,
+    },
+  };
 }
 
 export function cloneElementWithOffset(element: Element): Element {
-  if (element.type === "Text") {
-    return {
-      ...element,
-      id: crypto.randomUUID(),
-      bounds: {
-        ...element.bounds,
-        x: element.bounds.x + 24,
-        y: element.bounds.y + 24,
-      },
-      color: {
-        ...element.color,
-      },
-    };
-  }
+  const cloned = cloneElement(element);
 
-  return element;
+  return {
+    ...cloned,
+    bounds: {
+      ...cloned.bounds,
+      x: cloned.bounds.x + 24,
+      y: cloned.bounds.y + 24,
+    },
+  };
 }
 
 export function normalizeHexColor(value: string): string {
@@ -420,4 +352,31 @@ export function normalizeHexColor(value: string): string {
 
 export function cloneDeck(deck: Presentation): Presentation {
   return JSON.parse(JSON.stringify(deck)) as Presentation;
+}
+
+function updateElement(
+  deck: Presentation,
+  slideIndex: number,
+  elementId: string,
+  update: (element: Element) => Element,
+): Presentation {
+  return {
+    ...deck,
+    slides: deck.slides.map((slide, index) => {
+      if (index !== slideIndex) {
+        return slide;
+      }
+
+      return {
+        ...slide,
+        elements: slide.elements.map((element) => {
+          if (element.id !== elementId) {
+            return element;
+          }
+
+          return update(element);
+        }),
+      };
+    }),
+  };
 }

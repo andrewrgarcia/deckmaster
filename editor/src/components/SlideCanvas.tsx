@@ -1,5 +1,5 @@
 import type { MouseEvent, RefObject } from "react";
-import type { Slide, TextElement } from "../model/types";
+import type { Element, Slide, TextElement } from "../model/types";
 
 type SlideCanvasProps = {
   selectedSlide: Slide | undefined;
@@ -15,12 +15,12 @@ type SlideCanvasProps = {
   onStartDrag: (
     event: MouseEvent,
     slideIndex: number,
-    element: TextElement,
+    element: Element,
   ) => void;
   onStartResize: (
     event: MouseEvent,
     slideIndex: number,
-    element: TextElement,
+    element: Element,
   ) => void;
   onStartEditingText: (
     event: MouseEvent,
@@ -57,53 +57,83 @@ export function SlideCanvas({
           }}
         >
           {selectedSlide.elements.map((element) => {
-            if (element.type !== "Text") {
-              return null;
-            }
-
             const selected = selectedElementId === element.id;
-            const editing = editingElementId === element.id;
+            const editing =
+              element.type === "Text" && editingElementId === element.id;
+
+            if (element.type === "Text") {
+              return (
+                <div
+                  key={element.id}
+                  className={`textBox ${selected ? "selected" : ""} ${
+                    editing ? "editing" : ""
+                  }`}
+                  style={{
+                    left: element.bounds.x,
+                    top: element.bounds.y,
+                    width: element.bounds.width,
+                    height: element.bounds.height,
+                    fontSize: element.font_size,
+                    color: element.color.value,
+                  }}
+                  onMouseDown={(event) => {
+                    if (editing) {
+                      event.stopPropagation();
+                      return;
+                    }
+
+                    onStartDrag(event, selectedSlideIndex, element);
+                  }}
+                  onDoubleClick={(event) => onStartEditingText(event, element)}
+                >
+                  {editing ? (
+                    <textarea
+                      ref={editorInput}
+                      className="inlineTextEditor"
+                      value={editingText}
+                      onChange={(event) =>
+                        onEditingTextChange(event.target.value)
+                      }
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onBlur={onFinishEditingText}
+                    />
+                  ) : (
+                    element.text
+                  )}
+
+                  {selected && !editing ? (
+                    <div
+                      className="resizeHandle"
+                      onMouseDown={(event) =>
+                        onStartResize(event, selectedSlideIndex, element)
+                      }
+                    />
+                  ) : null}
+                </div>
+              );
+            }
 
             return (
               <div
                 key={element.id}
-                className={`textBox ${selected ? "selected" : ""} ${
-                  editing ? "editing" : ""
-                }`}
+                className={`imageBox ${selected ? "selected" : ""}`}
                 style={{
                   left: element.bounds.x,
                   top: element.bounds.y,
                   width: element.bounds.width,
                   height: element.bounds.height,
-                  fontSize: element.font_size,
-                  color: element.color.value,
                 }}
-                onMouseDown={(event) => {
-                  if (editing) {
-                    event.stopPropagation();
-                    return;
-                  }
-
-                  onStartDrag(event, selectedSlideIndex, element);
-                }}
-                onDoubleClick={(event) => onStartEditingText(event, element)}
+                onMouseDown={(event) =>
+                  onStartDrag(event, selectedSlideIndex, element)
+                }
               >
-                {editing ? (
-                  <textarea
-                    ref={editorInput}
-                    className="inlineTextEditor"
-                    value={editingText}
-                    onChange={(event) =>
-                      onEditingTextChange(event.target.value)
-                    }
-                    onMouseDown={(event) => event.stopPropagation()}
-                    onBlur={onFinishEditingText}
-                  />
-                ) : (
-                  element.text
-                )}
+                <img
+                  src={element.src}
+                  alt={element.alt ?? ""}
+                  draggable={false}
+                />
 
-                {selected && !editing ? (
+                {selected ? (
                   <div
                     className="resizeHandle"
                     onMouseDown={(event) =>

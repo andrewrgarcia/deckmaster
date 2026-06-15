@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import "./App.css";
 
+import { Sidebar } from "./components/Sidebar";
+import { SlideCanvas } from "./components/SlideCanvas";
 import { initialDeck } from "./model/initialDeck";
 import {
   addElementToSlide,
@@ -560,201 +562,52 @@ export default function App() {
       onMouseUp={stopInteraction}
       onMouseLeave={stopInteraction}
     >
-      <aside className="sidebar">
-        <h1>DeckMaster Editor</h1>
+      <Sidebar
+        deck={deck}
+        selectedSlide={selectedSlide}
+        selectedSlideIndex={selectedSlideIndex}
+        selectedTextElement={selectedTextElement}
+        onLoadDeckFile={loadDeckFile}
+        onDownloadDeck={downloadDeck}
+        onUndo={undo}
+        onRedo={redo}
+        onAddSlide={addSlide}
+        onDuplicateCurrentSlide={duplicateCurrentSlide}
+        onDeleteCurrentSlide={deleteCurrentSlide}
+        onAddTextToCurrentSlide={addTextToCurrentSlide}
+        onSelectSlide={(index) => {
+          setSelectedSlideIndex(index);
+          setSelectedElementId(null);
+          setEditingElementId(null);
+          setEditingText("");
+        }}
+        onRenameCurrentSlide={renameCurrentSlide}
+        onUpdateSelectedFontSize={updateSelectedFontSize}
+        onUpdateSelectedColor={updateSelectedColor}
+        onDeleteSelectedElement={deleteSelectedElement}
+      />
 
-        <label className="fileButton">
-          Load .deck.json
-          <input
-            type="file"
-            accept=".json,.deck"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-
-              if (file) {
-                loadDeckFile(file);
-              }
-            }}
-          />
-        </label>
-
-        <button onClick={downloadDeck}>Download .deck.json</button>
-        <button onClick={undo}>Undo</button>
-        <button onClick={redo}>Redo</button>
-        <button onClick={addSlide}>Add slide</button>
-        <button onClick={duplicateCurrentSlide}>Duplicate slide</button>
-        <button onClick={deleteCurrentSlide} disabled={deck.slides.length <= 1}>
-          Delete slide
-        </button>
-        <button onClick={addTextToCurrentSlide}>Add text</button>
-
-        <h2>Slides</h2>
-
-        <div className="slideList">
-          {deck.slides.map((slide, index) => (
-            <button
-              key={slide.id}
-              className={index === selectedSlideIndex ? "active" : ""}
-              onClick={() => {
-                setSelectedSlideIndex(index);
-                setSelectedElementId(null);
-                setEditingElementId(null);
-                setEditingText("");
-              }}
-            >
-              {index + 1}. {slide.name ?? "Untitled"}
-            </button>
-          ))}
-        </div>
-
-        <h2>Selected slide</h2>
-
-        {selectedSlide ? (
-          <div className="selectedControls">
-            <label>
-              Slide name
-              <input
-                className="textInput"
-                type="text"
-                value={selectedSlide.name ?? ""}
-                onChange={(event) => renameCurrentSlide(event.target.value)}
-              />
-            </label>
-
-            <button
-              className="dangerButton"
-              onClick={deleteCurrentSlide}
-              disabled={deck.slides.length <= 1}
-            >
-              Delete slide
-            </button>
-          </div>
-        ) : (
-          <p className="muted">No slide selected.</p>
-        )}
-
-        <h2>Selected text</h2>
-
-        {selectedTextElement ? (
-          <div className="selectedControls">
-            <p className="muted">
-              Double-click the text box to edit text directly.
-            </p>
-
-            <label>
-              Font size
-              <input
-                className="numberInput"
-                type="number"
-                min={4}
-                max={160}
-                step={1}
-                value={selectedTextElement.font_size}
-                onChange={(event) =>
-                  updateSelectedFontSize(Number(event.target.value))
-                }
-              />
-            </label>
-
-            <label>
-              Color
-              <input
-                className="colorInput"
-                type="color"
-                value={normalizeHexColor(selectedTextElement.color.value)}
-                onChange={(event) => updateSelectedColor(event.target.value)}
-              />
-            </label>
-
-            <button className="dangerButton" onClick={deleteSelectedElement}>
-              Delete selected element
-            </button>
-          </div>
-        ) : (
-          <p className="muted">Click a text box.</p>
-        )}
-      </aside>
-
-      <section
-        className="workspace"
-        onMouseDown={() => {
+      <SlideCanvas
+        selectedSlide={selectedSlide}
+        selectedSlideIndex={selectedSlideIndex}
+        backgroundColor={deck.theme.background.value}
+        selectedElementId={selectedElementId}
+        editingElementId={editingElementId}
+        editingText={editingText}
+        editorInput={editorInput}
+        onWorkspaceMouseDown={() => {
           if (editingElementId) {
             finishEditingText();
           }
 
           setSelectedElementId(null);
         }}
-      >
-        {selectedSlide ? (
-          <div
-            className="slideCanvas"
-            style={{
-              width: selectedSlide.size.width,
-              height: selectedSlide.size.height,
-              background: deck.theme.background.value,
-            }}
-          >
-            {selectedSlide.elements.map((element) => {
-              if (element.type !== "Text") {
-                return null;
-              }
-
-              const selected = selectedElementId === element.id;
-              const editing = editingElementId === element.id;
-
-              return (
-                <div
-                  key={element.id}
-                  className={`textBox ${selected ? "selected" : ""} ${
-                    editing ? "editing" : ""
-                  }`}
-                  style={{
-                    left: element.bounds.x,
-                    top: element.bounds.y,
-                    width: element.bounds.width,
-                    height: element.bounds.height,
-                    fontSize: element.font_size,
-                    color: element.color.value,
-                  }}
-                  onMouseDown={(event) => {
-                    if (editing) {
-                      event.stopPropagation();
-                      return;
-                    }
-
-                    startDrag(event, selectedSlideIndex, element);
-                  }}
-                  onDoubleClick={(event) => startEditingText(event, element)}
-                >
-                  {editing ? (
-                    <textarea
-                      ref={editorInput}
-                      className="inlineTextEditor"
-                      value={editingText}
-                      onChange={(event) => setEditingText(event.target.value)}
-                      onMouseDown={(event) => event.stopPropagation()}
-                      onBlur={finishEditingText}
-                    />
-                  ) : (
-                    element.text
-                  )}
-
-                  {selected && !editing ? (
-                    <div
-                      className="resizeHandle"
-                      onMouseDown={(event) =>
-                        startResize(event, selectedSlideIndex, element)
-                      }
-                    />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="muted">No slide selected.</p>
-        )}
-      </section>
+        onStartDrag={startDrag}
+        onStartResize={startResize}
+        onStartEditingText={startEditingText}
+        onEditingTextChange={setEditingText}
+        onFinishEditingText={finishEditingText}
+      />
     </main>
   );
 }

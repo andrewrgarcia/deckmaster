@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "deckmaster-core",
+    "deckmaster-cli",
+    "deckmaster-pptx"
+]
+resolver = "2"

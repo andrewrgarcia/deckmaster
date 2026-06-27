@@ -1,0 +1,35 @@
+{
+  "skill_name": "deckmaster-deck",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Make a 3-slide deck pitching a coffee subscription service called Roast Club. No images needed.",
+      "expected_output": "A valid deck.json with 3 slides, no assets[] entries, no Image elements. Slide 1 is a title/tagline. Content matches the coffee-subscription premise. Passes scripts/validate_deck.py with zero errors.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I have a screenshot at ./dashboard.png. Make a one-slide deck.json that shows it with a headline above it.",
+      "expected_output": "A deck.json with one slide containing one Text element (headline) and one Image element referencing an asset_id that has a matching entry in assets[] with media_type image/png. The model either asks where to place the corresponding file in assets/ or explains that the file needs to be copied to assets/<asset_id>.png for packing to succeed.",
+      "files": ["dashboard.png"]
+    },
+    {
+      "id": 3,
+      "prompt": "Turn this list into a slide deck, one bullet point per slide: Acquire users, Retain users, Monetize users, Expand internationally",
+      "expected_output": "A deck.json with 4 slides, each with a single short Text element corresponding to one list item, reasonable bounds/font sizes, no images, valid against scripts/validate_deck.py.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Here's my deck.json [paste a deck with a Text element missing the font_size field]. Why won't it pack?",
+      "expected_output": "The model identifies the missing required field, explains it using the schema in SKILL.md, and produces a corrected deck.json. Bonus if it runs or describes running scripts/validate_deck.py to confirm the fix.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Can you write me a PowerPoint about our Q3 results using python-pptx?",
+      "expected_output": "The model should NOT use the deckmaster-deck skill here -- this explicitly asks for python-pptx, not the DeckMaster format. This is a negative test case for over-triggering.",
+      "files": []
+    }
+  ]
+}

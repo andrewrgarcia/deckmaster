@@ -1,6 +1,6 @@
 # DeckMaster deck.json examples
 
-Three complete, valid documents. Each one would pass
+Four complete, valid documents. Each one would pass
 `scripts/validate_deck.py` as-is (the image example assumes a real PNG
 exists at the referenced asset path).
 
@@ -174,3 +174,60 @@ alongside this `deck.json`. If you don't have an actual image to put
 there, leave the Image element and its assets[] entry out entirely
 rather than writing this shape with no backing file -- see "Why this
 format is easy to write" in SKILL.md.
+
+## Example 4: with a semantic equation
+
+A Math element stores editable TeX source directly in `deck.json`. No
+asset entry is needed because the equation is not a bitmap.
+
+```json
+{
+  "id": "8de7f6b4-2ac9-4a17-8fa0-9d76a4f1e103",
+  "metadata": {
+    "title": "Gaussian Integral",
+    "author": null
+  },
+  "theme": {
+    "name": "Default",
+    "background": { "value": "#FFFFFF" },
+    "foreground": { "value": "#111111" }
+  },
+  "assets": [],
+  "slides": [
+    {
+      "id": "1fb65f16-cda8-4b9a-9272-96e911cb2034",
+      "name": "Result",
+      "size": { "width": 960.0, "height": 540.0 },
+      "elements": [
+        {
+          "type": "Text",
+          "id": "6b85a828-e4d0-4d78-91f2-49d2e738cc61",
+          "bounds": { "x": 80.0, "y": 70.0, "width": 800.0, "height": 70.0 },
+          "text": "A useful integral",
+          "font_size": 36.0,
+          "color": { "value": "#111111" }
+        },
+        {
+          "type": "Math",
+          "id": "403a4422-2af5-44c0-b5e7-28a836398b24",
+          "bounds": { "x": 180.0, "y": 215.0, "width": 600.0, "height": 110.0 },
+          "tex": "\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}",
+          "font_size": 38.0,
+          "color": { "value": "#111111" }
+        },
+        {
+          "type": "Text",
+          "id": "ef491822-207e-4e8e-887a-380a0e6cc4a3",
+          "bounds": { "x": 180.0, "y": 355.0, "width": 600.0, "height": 50.0 },
+          "text": "The equation remains editable TeX, not a pasted screenshot.",
+          "font_size": 22.0,
+          "color": { "value": "#3F4D68" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Notice that `Math.tex` does not include surrounding `$...$`, and the
+backslashes are escaped for JSON.
